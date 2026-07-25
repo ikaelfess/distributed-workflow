@@ -1,38 +1,5 @@
-services:
-  iam:
-    build: ./services/iam
-    depends_on:
-      - iam_database
-    environment:
-      DB_HOST: iam_database
-      DB_PORT: 5432
-      DB_NAME: iam_db
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-    ports:
-      - "3001:3000"
-    networks:
-      - distributed-workflow
-
-  iam_database:
-    image: postgres:18.1-alpine
-    environment:
-      POSTGRES_DB: iam_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5433:5432"
-    volumes:
-      - iam_data:/var/lib/postgresql/data
-    networks:
-      - distributed-workflow
-
-  # metadata:
-  # scheduler:
-  # worker:
-  # workflow:
-  # notification:
-  # artifact:
+include:
+  - services/iam/compose.yml
 
 volumes:
   iam_data:

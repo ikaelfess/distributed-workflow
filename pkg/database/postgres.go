@@ -41,9 +41,11 @@ func NewPostgres(ctx context.Context, cfg PostgresConfig) (*Postgres, error) {
 	)
 	db.AddQueryHook(loggerHook)
 
-	err := db.PingContext(ctx)
-	if err != nil {
-		db.Close()
+	if err := db.PingContext(ctx); err != nil {
+		if err := db.Close(); err != nil {
+			return nil, err
+		}
+
 		return nil, err
 	}
 

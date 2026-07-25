@@ -1,7 +1,10 @@
-.PHONY: openapi-iam
+.PHONY: test-iam test-iam-coverage
 
-iam-openapi:
-	go generate services/iam/api/api.gen.go
+test-iam:
+	go test -v ./services/iam/...
 
-setup:
-	go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+test-iam-coverage:
+	go test -v -coverprofile=services/iam/coverage.out ./services/iam/...
+
+iam-db:
+	@docker-compose up -d iam_database
