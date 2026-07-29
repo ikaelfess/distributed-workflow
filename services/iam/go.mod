@@ -5,10 +5,10 @@ go 1.26.0
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.2.3
-	github.com/ikael21/distributed-workflow/pkg/database v0.0.0-20260401093536-273173d388b5
-	github.com/ikael21/distributed-workflow/pkg/httpserver v0.0.0-20260329041856-1ce4a6d85a4e
-	github.com/ikael21/distributed-workflow/pkg/logger v0.0.0-20260329041856-1ce4a6d85a4e
-	github.com/ikael21/distributed-workflow/pkg/shutdown v0.0.0-20260404103851-dc40d6819c6a
+	github.com/ikaelfess/distributed-workflow/pkg/database v0.0.0-20260729003605-e7342cee6206
+	github.com/ikaelfess/distributed-workflow/pkg/httpserver v0.0.0-20260729003605-e7342cee6206
+	github.com/ikaelfess/distributed-workflow/pkg/logger v0.0.0-20260729003605-e7342cee6206
+	github.com/ikaelfess/distributed-workflow/pkg/shutdown v0.0.0-20260729003605-e7342cee6206
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.11.1
