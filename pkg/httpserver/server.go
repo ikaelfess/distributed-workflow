@@ -33,7 +33,6 @@ type Config struct {
 
 func New(cfg Config) *server {
 	engine := gin.New()
-	engine.Use(gin.Recovery())
 	engine.Use(logger.SetLogger(
 		logger.WithLogger(
 			func(_ *gin.Context, _ zerolog.Logger) zerolog.Logger {
@@ -41,6 +40,7 @@ func New(cfg Config) *server {
 			},
 		),
 	))
+	engine.Use(gin.Recovery())
 
 	if len(cfg.Middlewares) > 0 {
 		engine.Use(cfg.Middlewares...)

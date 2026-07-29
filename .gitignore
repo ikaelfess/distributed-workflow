@@ -37,3 +37,6 @@ go.work.sum
 # AI dirs
 .qwen
 .opencode
+
+# Git worktrees
+.worktrees
