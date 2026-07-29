@@ -1,3 +1,3 @@
-module github.com/ikael21/distributed-workflow/services/metadata
+module github.com/ikaelfess/distributed-workflow/services/metadata
 
 go 1.26.0

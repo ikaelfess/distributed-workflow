@@ -1,3 +1,3 @@
-module github.com/ikael21/distributed-workflow/services/artifact
+module github.com/ikaelfess/distributed-workflow/services/artifact
 
 go 1.26.0

@@ -1,4 +1,4 @@
-module github.com/ikael21/distributed-workflow/pkg/shutdown
+module github.com/ikaelfess/distributed-workflow/pkg/shutdown
 
 go 1.26.0
 

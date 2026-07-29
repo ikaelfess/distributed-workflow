@@ -1,3 +1,3 @@
-module github.com/ikael21/distributed-workflow/services/scheduler
+module github.com/ikaelfess/distributed-workflow/services/scheduler
 
 go 1.26.0

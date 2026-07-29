@@ -1,10 +1,10 @@
 package bootstrap
 
 import (
-	"github.com/ikael21/distributed-workflow/pkg/httpserver"
-	"github.com/ikael21/distributed-workflow/pkg/database"
+	"github.com/ikaelfess/distributed-workflow/pkg/httpserver"
+	"github.com/ikaelfess/distributed-workflow/pkg/database"
 
-	"github.com/ikael21/distributed-workflow/services/iam/internal/auth"
+	"github.com/ikaelfess/distributed-workflow/services/iam/internal/auth"
 )
 
 type App struct {

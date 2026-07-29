@@ -1,4 +1,4 @@
-module github.com/ikael21/distributed-workflow/pkg/logger
+module github.com/ikaelfess/distributed-workflow/pkg/logger
 
 go 1.26.0
 

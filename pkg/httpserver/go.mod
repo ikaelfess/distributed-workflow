@@ -1,4 +1,4 @@
-module github.com/ikael21/distributed-workflow/pkg/httpserver
+module github.com/ikaelfess/distributed-workflow/pkg/httpserver
 
 go 1.26.0
 

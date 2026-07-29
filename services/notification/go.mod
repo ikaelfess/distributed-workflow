@@ -1,3 +1,3 @@
-module github.com/ikael21/distributed-workflow/services/notification
+module github.com/ikaelfess/distributed-workflow/services/notification
 
 go 1.26.0
