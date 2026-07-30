@@ -7,4 +7,4 @@ RUN go mod download
 COPY . .
 
 EXPOSE 3000
-CMD ["go", "tool", "air"]
+CMD ["go", "run", "./cmd/iam"]

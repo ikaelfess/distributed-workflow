@@ -1,0 +1,83 @@
+openapi: 3.1.1
+info:
+  title: Identity and Access API
+  version: 1.0.0
+  description: HTTP contract for human identity and platform-wide Access Levels.
+servers:
+  - url: /
+security: []
+paths:
+  /v1/health/live:
+    get:
+      operationId: getLiveness
+      summary: Report whether the IAM process is running
+      responses:
+        "200":
+          description: The process is running.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+  /v1/health/ready:
+    get:
+      operationId: getReadiness
+      summary: Report whether IAM can serve requests
+      responses:
+        "200":
+          description: IAM and PostgreSQL are ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        "503":
+          description: A required dependency is unavailable.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+components:
+  schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          const: ok
+    Problem:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+        detail:
+          type: string
+  responses:
+    MethodNotAllowed:
+      description: The resource does not support the request method.
+      headers:
+        Allow:
+          description: Methods accepted by this resource.
+          schema:
+            type: string
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"

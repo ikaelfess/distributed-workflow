@@ -1,4 +1,4 @@
-.PHONY: test-iam test-iam-coverage update-shared-packages update-shared-packages-deps
+.PHONY: iam-db test-iam test-iam-coverage test-iam-integration update-shared-packages update-shared-packages-deps
 
 
 test-iam:
@@ -9,8 +9,13 @@ test-iam-coverage:
 	go test -v -coverprofile=services/iam/coverage.out ./services/iam/...
 
 
+test-iam-integration: iam-db
+	IAM_TEST_DATABASE_URL="postgres://postgres:postgres@localhost:5433/postgres?sslmode=disable" \
+		go test -v -tags=integration ./services/iam/...
+
+
 iam-db:
-	@docker-compose up -d iam_database
+	@docker compose up -d --wait iam_database
 
 
 SERVICES := $(patsubst %/,%,$(wildcard services/*/))
