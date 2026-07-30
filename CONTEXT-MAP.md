@@ -36,4 +36,4 @@ The following relationships come from the README and are **planned, not authorit
 - **Unresolved producer → Notifications**: planned Kafka event `workflow.completed`.
 - **Envoy → Identity and Access**: planned external authorization for gateway requests.
 
-No Kafka schemas or gRPC protocol definitions currently establish these relationships. Ownership and location of future cross-service contracts are unresolved; do not infer either from this map.
+No Kafka schemas or gRPC protocol definitions currently establish these relationships. Published contracts are producer-owned under [ADR-0002](./docs/adr/0002-producer-owned-contracts.md); do not treat a relationship as authoritative until its producer-owned contract exists.

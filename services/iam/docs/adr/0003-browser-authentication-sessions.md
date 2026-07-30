@@ -1,0 +1,3 @@
+# Use hardened cookies for browser authentication sessions
+
+The first human client is a same-site browser application. Login therefore places short-lived Access Tokens and rotating Refresh Tokens in host-scoped `Secure`, `HttpOnly`, `SameSite=Lax` cookies instead of returning token material in JSON or exposing it to JavaScript storage; state-changing requests also require origin checks and a CSRF token bound to the Authentication Session. Each login creates an independently revocable Authentication Session, password or Email Address changes revoke all Authentication Sessions, and non-browser token issuance is deferred to a separate flow rather than weakening browser handling.

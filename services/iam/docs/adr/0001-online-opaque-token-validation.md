@@ -1,0 +1,3 @@
+# Validate opaque access tokens online
+
+Identity and Access issues opaque Access Tokens and validates them online against current User and Authentication Session state. Envoy uses its standard external-authorization `Check` contract, while trusted internal callers use IAM's versioned `ValidateToken` contract; both adapters share the same validation behavior, fail closed, and do not positively cache successful results. This makes IAM an availability- and latency-critical dependency, but it guarantees that suspension and Access Level changes take effect immediately instead of waiting for self-contained token claims to expire.

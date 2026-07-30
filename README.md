@@ -38,7 +38,7 @@ distributed-workflow/
 
 | Service             | Primary Protocol | Database     | Purpose                                      |
 |---------------------|------------------|--------------|----------------------------------------------|
-| IAM Service         | HTTP + gRPC      | PostgreSQL   | Authentication and authorization             |
+| IAM Service         | HTTP + gRPC      | PostgreSQL   | Identity, authentication, and Access Levels   |
 | Workflow Service    | HTTP             | PostgreSQL   | Workflow definitions and execution requests  |
 | Scheduler Service   | gRPC             | PostgreSQL   | Task orchestration and dependency resolution |
 | Worker Service      | gRPC             | None/Local   | Distributed job execution                    |
@@ -50,17 +50,17 @@ distributed-workflow/
 
 ## IAM Service
 
-Responsible for authentication, issuing tokens, and validating permissions across services.
+Responsible for human and service identity, authentication proof, and platform-wide User Access Levels. Permission to act on a domain resource remains with the service that owns that resource.
 
 Implementation Tasks
 
-- Implement user registration and login endpoints
-- Store users and credentials in PostgreSQL
-- Generate and validate JWT tokens
-- Provide gRPC endpoint `ValidateToken` for internal services
-- Implement role-based access control
-- Add middleware for HTTP authentication
-- Expose gRPC client library for other services
+- Implement versioned HTTP endpoints for registration, email verification, authentication, recovery, Authentication Sessions, and User administration
+- Store identities, Argon2id credentials, opaque tokens, challenges, audit events, and an outbox in PostgreSQL
+- Validate Access Tokens online against current IAM state
+- Provide a versioned gRPC `ValidateToken` contract for trusted internal callers
+- Implement Envoy's standard external-authorization `Check` contract
+- Enforce Standard and Administrator Access Levels without centralizing domain-resource permissions
+- Publish encrypted email-delivery requests to Kafka through a transactional outbox
 
 ---
 

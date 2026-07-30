@@ -33,7 +33,7 @@ Modules under `pkg/` are shared technical infrastructure, not bounded contexts. 
 
 `CONTEXT-MAP.md` may describe Kafka, gRPC, HTTP, or infrastructure relationships that the README plans. Treat every such relationship as non-authoritative until a schema, protocol definition, or implementation establishes it.
 
-The repository has not yet chosen whether contracts will be producer-owned or centralized. Do not invent a contract location; resolve that decision when the first cross-service contract is designed.
+Published contracts are producer-owned and versioned beside the service that defines them, as established by [ADR-0002](../adr/0002-producer-owned-contracts.md). A planned relationship still remains non-authoritative until its producer-owned schema or protocol definition exists.
 
 ## Use the glossary's vocabulary
 
