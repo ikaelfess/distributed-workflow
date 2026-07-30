@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -51,6 +53,30 @@ func (d *Database) Ping(ctx context.Context) error {
 		return fmt.Errorf("ping postgres: %w", err)
 	}
 	return nil
+}
+
+func (d *Database) Begin(ctx context.Context) (pgx.Tx, error) {
+	tx, err := d.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+	return tx, nil
+}
+
+func (d *Database) Exec(
+	ctx context.Context,
+	sql string,
+	arguments ...any,
+) (pgconn.CommandTag, error) {
+	return d.pool.Exec(ctx, sql, arguments...)
+}
+
+func (d *Database) Query(
+	ctx context.Context,
+	sql string,
+	arguments ...any,
+) (pgx.Rows, error) {
+	return d.pool.Query(ctx, sql, arguments...)
 }
 
 func (d *Database) Close() {

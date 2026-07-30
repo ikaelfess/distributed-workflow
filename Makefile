@@ -1,4 +1,4 @@
-.PHONY: iam-db test-iam test-iam-coverage test-iam-integration update-shared-packages update-shared-packages-deps
+.PHONY: iam-db iam-infra test-iam test-iam-coverage test-iam-integration update-shared-packages update-shared-packages-deps
 
 
 test-iam:
@@ -9,13 +9,18 @@ test-iam-coverage:
 	go test -v -coverprofile=services/iam/coverage.out ./services/iam/...
 
 
-test-iam-integration: iam-db
+test-iam-integration: iam-infra
 	IAM_TEST_DATABASE_URL="postgres://postgres:postgres@localhost:5433/postgres?sslmode=disable" \
+		IAM_TEST_KAFKA_BROKERS="localhost:9092" \
 		go test -v -tags=integration ./services/iam/...
 
 
 iam-db:
 	@docker compose up -d --wait iam_database
+
+
+iam-infra:
+	@docker compose up -d --wait iam_database iam_kafka
 
 
 SERVICES := $(patsubst %/,%,$(wildcard services/*/))

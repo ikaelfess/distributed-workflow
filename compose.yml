@@ -3,6 +3,7 @@ include:
 
 volumes:
   iam_data:
+  kafka_data:
 
 networks:
   distributed-workflow:

@@ -31,7 +31,7 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	appConfig, err := config.Load()
+	appConfig, err := config.LoadAPI()
 	if err != nil {
 		return err
 	}

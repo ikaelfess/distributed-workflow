@@ -1,3 +1,7 @@
 # Delegate email delivery through an encrypted outbox
 
 Identity and Access owns verification and recovery challenges but delegates email transport to Notifications. It commits an encrypted delivery request to a transactional outbox with the challenge, then a separate relay publishes the producer-owned event to Kafka with at-least-once delivery and a stable event ID for consumer deduplication. This avoids coupling identity transactions to Notifications availability and prevents raw one-time secrets from appearing in plaintext in the database outbox or Kafka.
+
+IAM encrypts the complete delivery payload, including the recipient Email Address and challenge, with a random AES-256-GCM content key. It wraps that key with a Notifications-owned RSA public key using RSA-OAEP with SHA-256. The event envelope identifies the key version so Notifications can retain old private keys while IAM rotates to a new public key. IAM receives only the public key through a mounted secret file; Notifications alone owns the corresponding private keys.
+
+The event ID, event type, schema version, and key identifier remain outside the ciphertext so the relay can route records and Notifications can deduplicate them without decrypting. Those fields are authenticated as associated data. Successfully published outbox rows are deleted; a crash after publish but before deletion may publish the same stable event ID again, which is why consumer deduplication is required.
