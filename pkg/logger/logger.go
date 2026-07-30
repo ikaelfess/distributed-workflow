@@ -9,14 +9,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const (
-	localEnv string = "local"
-)
-
 type Config struct {
 	ServiceName string
 	Level       string
-	Env         string
+	Pretty      bool
 }
 
 func NewLogger(cfg Config) (zerolog.Logger, error) {
@@ -28,7 +24,7 @@ func NewLogger(cfg Config) (zerolog.Logger, error) {
 	zerolog.SetGlobalLevel(level)
 	zerolog.TimeFieldFormat = time.RFC3339
 
-	if cfg.Env == localEnv {
+	if cfg.Pretty {
 		return log.Output(zerolog.ConsoleWriter{Out: os.Stdout}).
 			With().
 			Timestamp().

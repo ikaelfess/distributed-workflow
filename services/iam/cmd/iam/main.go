@@ -25,7 +25,7 @@ func main() {
 	appLogger, err := logger.NewLogger(logger.Config{
 		ServiceName: appConfig.ServiceName,
 		Level: appConfig.LogLevel,
-		Env: appConfig.AppEnv,
+		Pretty: true,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "app logger err: %v\n", err)
