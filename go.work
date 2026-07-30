@@ -1,0 +1,15 @@
+go 1.26.0
+
+use (
+	./pkg/database
+	./pkg/httpserver
+	./pkg/logger
+	./pkg/shutdown
+	./services/artifact
+	./services/iam
+	./services/metadata
+	./services/notification
+	./services/scheduler
+	./services/worker
+	./services/workflow
+)
