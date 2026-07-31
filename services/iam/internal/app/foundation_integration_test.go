@@ -65,6 +65,7 @@ func TestFoundation_HealthAgainstPostgres(t *testing.T) {
 		os.Environ(),
 		"DATABASE_URL="+databaseURL,
 		"SERVER_ADDRESS=127.0.0.1:0",
+		"GRPC_ADDRESS=127.0.0.1:0",
 		"APP_ENV=test",
 		"LOG_LEVEL=info",
 		"NOTIFICATIONS_DELIVERY_PUBLIC_KEY_FILE="+publicKeyFile,

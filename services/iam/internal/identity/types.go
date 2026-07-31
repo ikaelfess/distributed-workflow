@@ -12,9 +12,13 @@ const (
 
 	ChallengeTypeVerification = "verification"
 
-	AuditRegistrationAccepted  = "registration.accepted"
-	AuditVerificationSucceeded = "verification.succeeded"
-	AuditVerificationFailed    = "verification.failed"
+	AuditRegistrationAccepted    = "registration.accepted"
+	AuditVerificationSucceeded   = "verification.succeeded"
+	AuditVerificationFailed      = "verification.failed"
+	AuditAuthenticationSucceeded = "authentication.succeeded"
+	AuditAuthenticationFailed    = "authentication.failed"
+	AuditValidationSucceeded     = "validation.succeeded"
+	AuditValidationFailed        = "validation.failed"
 
 	RetentionRoutine   = "routine"
 	RetentionSensitive = "sensitive"

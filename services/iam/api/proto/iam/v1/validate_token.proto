@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package iam.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/ikaelfess/distributed-workflow/services/iam/api/gen/iam/v1;iamv1";
+
+// TokenValidationService lets trusted internal callers validate opaque Access Tokens online.
+service TokenValidationService {
+  // ValidateToken checks an Access Token against current User and Authentication Session state.
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+}
+
+message ValidateTokenRequest {
+  // Opaque Access Token presented by the caller.
+  string access_token = 1;
+}
+
+message ValidateTokenResponse {
+  // Stable User ID. Never an Email Address.
+  string user_id = 1;
+  // Subject kind for the validated credential.
+  SubjectKind subject_kind = 2;
+  // Current platform-wide Access Level.
+  AccessLevel access_level = 3;
+  // Authentication Session that issued the Access Token.
+  string authentication_session_id = 4;
+  // Access Token expiry as currently stored for this credential.
+  google.protobuf.Timestamp expires_at = 5;
+}
+
+enum SubjectKind {
+  SUBJECT_KIND_UNSPECIFIED = 0;
+  SUBJECT_KIND_USER = 1;
+  // Reserved for a later Service Identity milestone.
+  SUBJECT_KIND_SERVICE_IDENTITY = 2;
+}
+
+enum AccessLevel {
+  ACCESS_LEVEL_UNSPECIFIED = 0;
+  ACCESS_LEVEL_STANDARD = 1;
+  ACCESS_LEVEL_ADMINISTRATOR = 2;
+}

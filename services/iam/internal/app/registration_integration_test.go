@@ -53,6 +53,7 @@ func TestRegistration_VerifyStandardUser(t *testing.T) {
 	iam := startProcess(t, iamBinary, map[string]string{
 		"DATABASE_URL":                           databaseURL,
 		"SERVER_ADDRESS":                         "127.0.0.1:0",
+		"GRPC_ADDRESS":                           "127.0.0.1:0",
 		"APP_ENV":                                "test",
 		"LOG_LEVEL":                              "info",
 		"EMAIL_DELIVERY_TOPIC":                   topic,

@@ -25,11 +25,15 @@ type Config struct {
 	AppEnv      string `env:"APP_ENV" env-default:"local"`
 
 	ServerAddress     string        `env:"SERVER_ADDRESS" env-default:"localhost:3000"`
+	GRPCAddress       string        `env:"GRPC_ADDRESS" env-default:"localhost:3001"`
 	ShutdownTimeout   time.Duration `env:"SHUTDOWN_TIMEOUT" env-default:"20s"`
 	ReadTimeout       time.Duration `env:"READ_TIMEOUT" env-default:"5s"`
 	ReadHeaderTimeout time.Duration `env:"READ_HEADER_TIMEOUT" env-default:"2s"`
 	WriteTimeout      time.Duration `env:"WRITE_TIMEOUT" env-default:"10s"`
 	IdleTimeout       time.Duration `env:"IDLE_TIMEOUT" env-default:"60s"`
+
+	AccessTokenTTL  time.Duration `env:"ACCESS_TOKEN_TTL" env-default:"15m"`
+	RefreshTokenTTL time.Duration `env:"REFRESH_TOKEN_TTL" env-default:"720h"`
 
 	KafkaBrokers         string        `env:"KAFKA_BROKERS" env-default:"localhost:9092"`
 	KafkaDeliveryTimeout time.Duration `env:"KAFKA_DELIVERY_TIMEOUT" env-default:"5s"`
@@ -86,6 +90,11 @@ func (c Config) ValidateAPI() error {
 	} else if _, _, err := net.SplitHostPort(c.ServerAddress); err != nil {
 		validationErrors = append(validationErrors, fmt.Errorf("server address: %w", err))
 	}
+	if strings.TrimSpace(c.GRPCAddress) == "" {
+		validationErrors = append(validationErrors, errors.New("grpc address is required"))
+	} else if _, _, err := net.SplitHostPort(c.GRPCAddress); err != nil {
+		validationErrors = append(validationErrors, fmt.Errorf("grpc address: %w", err))
+	}
 	if strings.TrimSpace(c.EmailDeliveryTopic) == "" {
 		validationErrors = append(validationErrors, errors.New("email delivery topic is required"))
 	}
@@ -105,6 +114,24 @@ func (c Config) ValidateAPI() error {
 		validationErrors = append(
 			validationErrors,
 			errors.New("verification challenge ttl must be greater than zero"),
+		)
+	}
+	if c.AccessTokenTTL <= 0 {
+		validationErrors = append(
+			validationErrors,
+			errors.New("access token ttl must be greater than zero"),
+		)
+	}
+	if c.RefreshTokenTTL <= 0 {
+		validationErrors = append(
+			validationErrors,
+			errors.New("refresh token ttl must be greater than zero"),
+		)
+	}
+	if c.AccessTokenTTL > c.RefreshTokenTTL {
+		validationErrors = append(
+			validationErrors,
+			errors.New("access token ttl must not exceed refresh token ttl"),
 		)
 	}
 
