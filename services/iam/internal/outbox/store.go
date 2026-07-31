@@ -51,8 +51,14 @@ func (s *Store) EnqueueEmailDelivery(
 	if topic == "" {
 		return errors.New("topic is required")
 	}
-	if event.ID == "" || event.Type != delivery.EmailDeliveryEventType {
+	if event.ID == "" ||
+		event.Type != delivery.EmailDeliveryEventType ||
+		event.SchemaVersion != delivery.EmailDeliverySchemaVersion ||
+		event.OccurredAt.IsZero() {
 		return errors.New("valid email delivery event is required")
+	}
+	if err := event.Envelope.Validate(); err != nil {
+		return fmt.Errorf("encrypted envelope is required: %w", err)
 	}
 
 	payload, err := json.Marshal(event)

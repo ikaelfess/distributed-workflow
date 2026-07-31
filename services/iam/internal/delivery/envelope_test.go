@@ -86,3 +86,19 @@ func TestParseEnvelopePublicKey(t *testing.T) {
 	assert.Equal(t, privateKey.PublicKey.N, publicKey.N)
 	assert.Equal(t, privateKey.PublicKey.E, publicKey.E)
 }
+
+func TestEnvelope_Validate(t *testing.T) {
+	t.Parallel()
+
+	valid := delivery.Envelope{
+		Algorithm:  delivery.EnvelopeAlgorithm,
+		KeyID:      "notifications-2026-01",
+		WrappedKey: []byte{1},
+		Nonce:      []byte{2},
+		Ciphertext: []byte{3},
+	}
+	require.NoError(t, valid.Validate())
+
+	empty := delivery.Envelope{}
+	require.Error(t, empty.Validate())
+}

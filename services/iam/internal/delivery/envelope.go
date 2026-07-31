@@ -28,6 +28,25 @@ type Envelope struct {
 	Ciphertext []byte `json:"ciphertext"`
 }
 
+func (e Envelope) Validate() error {
+	if e.Algorithm != EnvelopeAlgorithm {
+		return errors.New("unsupported envelope algorithm")
+	}
+	if e.KeyID == "" {
+		return errors.New("key id is required")
+	}
+	if len(e.WrappedKey) == 0 {
+		return errors.New("wrapped key is required")
+	}
+	if len(e.Nonce) == 0 {
+		return errors.New("nonce is required")
+	}
+	if len(e.Ciphertext) == 0 {
+		return errors.New("ciphertext is required")
+	}
+	return nil
+}
+
 type EnvelopeEncryptor struct {
 	keyID     string
 	publicKey *rsa.PublicKey
