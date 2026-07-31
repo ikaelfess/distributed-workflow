@@ -102,7 +102,7 @@ func run(ctx context.Context) error {
 		ReadHeaderTimeout: appConfig.ReadHeaderTimeout,
 		WriteTimeout:      appConfig.WriteTimeout,
 		IdleTimeout:       appConfig.IdleTimeout,
-	}, httpapi.NewHandler(readiness), appLogger)
+	}, httpapi.NewHandler(httpapi.Dependencies{Readiness: readiness}), appLogger)
 
 	runContext, cancelRun := context.WithCancel(ctx)
 	defer cancelRun()

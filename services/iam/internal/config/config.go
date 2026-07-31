@@ -89,6 +89,18 @@ func (c Config) ValidateAPI() error {
 	if strings.TrimSpace(c.EmailDeliveryTopic) == "" {
 		validationErrors = append(validationErrors, errors.New("email delivery topic is required"))
 	}
+	if strings.TrimSpace(c.NotificationsDeliveryPublicKeyFile) == "" {
+		validationErrors = append(
+			validationErrors,
+			errors.New("notifications delivery public key file is required"),
+		)
+	}
+	if strings.TrimSpace(c.NotificationsDeliveryKeyID) == "" {
+		validationErrors = append(
+			validationErrors,
+			errors.New("notifications delivery key id is required"),
+		)
+	}
 	if c.VerificationChallengeTTL <= 0 {
 		validationErrors = append(
 			validationErrors,

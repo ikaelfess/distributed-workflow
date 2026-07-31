@@ -39,6 +39,59 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "405":
           $ref: "#/components/responses/MethodNotAllowed"
+  /v1/registrations:
+    post:
+      operationId: registerUser
+      summary: Register a Standard Unverified User
+      description: >
+        Accepts a canonical Email Address and password. Always assigns Standard
+        Access Level. Returns the same generic acceptance response whether the
+        Email Address is new or already registered.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegistrationRequest"
+      responses:
+        "202":
+          description: The registration request was accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Accepted"
+        "400":
+          description: The registration request is invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedPost"
+  /v1/email-verifications:
+    post:
+      operationId: verifyEmailAddress
+      summary: Prove control of an Email Address
+      description: >
+        Consumes a single-use verification challenge and activates an Unverified
+        User without creating an Authentication Session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailVerificationRequest"
+      responses:
+        "204":
+          description: The Email Address was verified.
+        "400":
+          description: The verification challenge is invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedPost"
 components:
   schemas:
     Health:
@@ -50,6 +103,38 @@ components:
         status:
           type: string
           const: ok
+    Accepted:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          const: accepted
+    RegistrationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 12
+          maxLength: 128
+    EmailVerificationRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - challenge
+      properties:
+        challenge:
+          type: string
+          minLength: 1
     Problem:
       type: object
       additionalProperties: false
@@ -77,6 +162,18 @@ components:
           description: Methods accepted by this resource.
           schema:
             type: string
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    MethodNotAllowedPost:
+      description: The resource does not support the request method.
+      headers:
+        Allow:
+          description: Methods accepted by this resource.
+          schema:
+            type: string
+            const: POST
       content:
         application/problem+json:
           schema:

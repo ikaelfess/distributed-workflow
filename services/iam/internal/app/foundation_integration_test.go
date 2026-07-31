@@ -5,8 +5,12 @@ package app_test
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"database/sql"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"net/http"
@@ -53,6 +57,7 @@ func TestFoundation_HealthAgainstPostgres(t *testing.T) {
 	migrateDatabase(t, databaseURL)
 
 	binaryPath := buildIAM(t)
+	publicKeyFile := writeTestPublicKeyFile(t)
 
 	var processOutput synchronizedBuffer
 	command := exec.Command(binaryPath)
@@ -62,6 +67,8 @@ func TestFoundation_HealthAgainstPostgres(t *testing.T) {
 		"SERVER_ADDRESS=127.0.0.1:0",
 		"APP_ENV=test",
 		"LOG_LEVEL=info",
+		"NOTIFICATIONS_DELIVERY_PUBLIC_KEY_FILE="+publicKeyFile,
+		"NOTIFICATIONS_DELIVERY_KEY_ID=notifications-test",
 	)
 	command.Stdout = &processOutput
 	command.Stderr = &processOutput
@@ -105,6 +112,22 @@ func buildIAM(t *testing.T) string {
 	require.NoErrorf(t, err, "build IAM: %s", output)
 
 	return binaryPath
+}
+
+func writeTestPublicKeyFile(t *testing.T) string {
+	t.Helper()
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+	encoded, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+	require.NoError(t, err)
+
+	path := filepath.Join(t.TempDir(), "notifications.pub.pem")
+	require.NoError(t, os.WriteFile(path, pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: encoded,
+	}), 0o600))
+	return path
 }
 
 func waitForServerAddress(t *testing.T, processOutput *synchronizedBuffer) string {

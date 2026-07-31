@@ -60,7 +60,9 @@ func TestHandler_Health(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := httptest.NewServer(httpapi.NewHandler(tt.probe))
+			server := httptest.NewServer(httpapi.NewHandler(httpapi.Dependencies{
+				Readiness: tt.probe,
+			}))
 			defer server.Close()
 
 			response, err := server.Client().Get(server.URL + tt.path)
@@ -135,9 +137,11 @@ func TestHandler_ProblemDetails(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := httptest.NewServer(httpapi.NewHandler(readinessProbeFunc(func(context.Context) error {
-				return nil
-			})))
+			server := httptest.NewServer(httpapi.NewHandler(httpapi.Dependencies{
+				Readiness: readinessProbeFunc(func(context.Context) error {
+					return nil
+				}),
+			}))
 			defer server.Close()
 
 			request, err := http.NewRequest(tt.method, server.URL+tt.path, nil)
