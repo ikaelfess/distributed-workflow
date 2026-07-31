@@ -9,6 +9,10 @@
 
 Issues and PRDs are tracked in GitHub Issues. See `docs/agents/issue-tracker.md`.
 
+### Delivery
+
+Solving-issue work lands via a dedicated branch and a PR linked with `Fixes #<n>` / `Closes #<n>` — never directly on `main`. See `docs/agents/delivery.md`.
+
 ### Triage labels
 
 The default canonical triage labels are used. See `docs/agents/triage-labels.md`.
