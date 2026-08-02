@@ -59,6 +59,7 @@ func TestRegistration_VerifyStandardUser(t *testing.T) {
 		"EMAIL_DELIVERY_TOPIC":                   topic,
 		"NOTIFICATIONS_DELIVERY_PUBLIC_KEY_FILE": publicKeyFile,
 		"NOTIFICATIONS_DELIVERY_KEY_ID":          "notifications-test",
+		"ALLOWED_ORIGINS":                        "https://app.example.com",
 	})
 	iamAddress := iam.waitForAddress(t)
 	client := &http.Client{Timeout: 30 * time.Second}

@@ -32,8 +32,10 @@ type Config struct {
 	WriteTimeout      time.Duration `env:"WRITE_TIMEOUT" env-default:"10s"`
 	IdleTimeout       time.Duration `env:"IDLE_TIMEOUT" env-default:"60s"`
 
-	AccessTokenTTL  time.Duration `env:"ACCESS_TOKEN_TTL" env-default:"15m"`
-	RefreshTokenTTL time.Duration `env:"REFRESH_TOKEN_TTL" env-default:"720h"`
+	AccessTokenTTL          time.Duration `env:"ACCESS_TOKEN_TTL" env-default:"15m"`
+	RefreshTokenTTL         time.Duration `env:"REFRESH_TOKEN_TTL" env-default:"720h"`
+	RefreshReuseGracePeriod time.Duration `env:"REFRESH_REUSE_GRACE_PERIOD" env-default:"5s"`
+	AllowedOrigins          string        `env:"ALLOWED_ORIGINS"`
 
 	KafkaBrokers         string        `env:"KAFKA_BROKERS" env-default:"localhost:9092"`
 	KafkaDeliveryTimeout time.Duration `env:"KAFKA_DELIVERY_TIMEOUT" env-default:"5s"`
@@ -132,6 +134,18 @@ func (c Config) ValidateAPI() error {
 		validationErrors = append(
 			validationErrors,
 			errors.New("access token ttl must not exceed refresh token ttl"),
+		)
+	}
+	if c.RefreshReuseGracePeriod < 0 {
+		validationErrors = append(
+			validationErrors,
+			errors.New("refresh reuse grace period must not be negative"),
+		)
+	}
+	if len(c.AllowedOriginList()) == 0 {
+		validationErrors = append(
+			validationErrors,
+			errors.New("at least one allowed origin is required"),
 		)
 	}
 
@@ -242,4 +256,15 @@ func (c Config) KafkaBrokerList() []string {
 		}
 	}
 	return brokers
+}
+
+func (c Config) AllowedOriginList() []string {
+	var origins []string
+	for origin := range strings.SplitSeq(c.AllowedOrigins, ",") {
+		origin = strings.TrimSpace(origin)
+		if origin != "" {
+			origins = append(origins, origin)
+		}
+	}
+	return origins
 }

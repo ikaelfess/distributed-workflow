@@ -10,6 +10,8 @@ import (
 const (
 	AccessTokenCookieName  = "iam_access_token"
 	RefreshTokenCookieName = "iam_refresh_token"
+	CSRFTokenCookieName    = "iam_csrf"
+	CSRFTokenHeaderName    = "X-CSRF-Token"
 )
 
 func setCredentialCookies(w http.ResponseWriter, credentials identity.IssuedCredentials) {
@@ -33,4 +35,48 @@ func setCredentialCookies(w http.ResponseWriter, credentials identity.IssuedCred
 		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 	})
+	if credentials.CSRFToken != "" {
+		setCSRFCookie(w, credentials.CSRFToken, credentials.RefreshTokenExpiresAt)
+	}
+}
+
+func setCSRFCookie(w http.ResponseWriter, csrfToken string, expires time.Time) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     CSRFTokenCookieName,
+		Value:    csrfToken,
+		Path:     "/",
+		Expires:  expires,
+		MaxAge:   int(time.Until(expires).Seconds()),
+		HttpOnly: false,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func clearCredentialCookies(w http.ResponseWriter) {
+	expired := time.Unix(0, 0).UTC()
+	for _, name := range []string{
+		AccessTokenCookieName,
+		RefreshTokenCookieName,
+		CSRFTokenCookieName,
+	} {
+		http.SetCookie(w, &http.Cookie{
+			Name:     name,
+			Value:    "",
+			Path:     "/",
+			Expires:  expired,
+			MaxAge:   -1,
+			HttpOnly: name != CSRFTokenCookieName,
+			Secure:   true,
+			SameSite: http.SameSiteLaxMode,
+		})
+	}
+}
+
+func cookieValue(r *http.Request, name string) string {
+	cookie, err := r.Cookie(name)
+	if err != nil || cookie == nil {
+		return ""
+	}
+	return cookie.Value
 }

@@ -58,6 +58,8 @@ func TestAuthenticateAndValidateAccessToken(t *testing.T) {
 		"NOTIFICATIONS_DELIVERY_KEY_ID":          "notifications-test",
 		"ACCESS_TOKEN_TTL":                       "15m",
 		"REFRESH_TOKEN_TTL":                      "720h",
+		"ALLOWED_ORIGINS":                        "https://app.example.com",
+		"REFRESH_REUSE_GRACE_PERIOD":             "5s",
 	})
 	httpAddress := iam.waitForAddress(t)
 	grpcAddress := iam.waitForGRPCAddress(t)
@@ -233,11 +235,12 @@ func TestAuthenticateAndValidateAccessToken(t *testing.T) {
 	relay.stop(t)
 }
 
-type loginResponse struct {
+type cookieResponse struct {
 	status       int
 	body         string
 	accessToken  string
 	refreshToken string
+	csrfToken    string
 	cookies      map[string]*http.Cookie
 }
 
@@ -246,7 +249,7 @@ func postLogin(
 	client *http.Client,
 	endpoint string,
 	body map[string]string,
-) loginResponse {
+) cookieResponse {
 	t.Helper()
 	payload, err := json.Marshal(body)
 	require.NoError(t, err)
@@ -260,21 +263,23 @@ func postLogin(
 	for _, cookie := range response.Cookies() {
 		cookies[cookie.Name] = cookie
 	}
-	return loginResponse{
+	return cookieResponse{
 		status:       response.StatusCode,
 		body:         strings.TrimSpace(string(raw)),
 		accessToken:  cookieValue(cookies, httpapi.AccessTokenCookieName),
 		refreshToken: cookieValue(cookies, httpapi.RefreshTokenCookieName),
+		csrfToken:    cookieValue(cookies, httpapi.CSRFTokenCookieName),
 		cookies:      cookies,
 	}
 }
 
-func assertAuthFailure(t *testing.T, response loginResponse) {
+func assertAuthFailure(t *testing.T, response cookieResponse) {
 	t.Helper()
 	assert.Equal(t, http.StatusUnauthorized, response.status)
 	assert.Contains(t, response.body, `"title":"authentication failed"`)
 	assert.Empty(t, response.accessToken)
 	assert.Empty(t, response.refreshToken)
+	assert.Empty(t, response.csrfToken)
 }
 
 func assertCookie(t *testing.T, cookie *http.Cookie) {

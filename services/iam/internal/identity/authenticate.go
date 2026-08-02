@@ -28,6 +28,7 @@ type SessionClientInfo struct {
 type IssuedCredentials struct {
 	AccessToken             string
 	RefreshToken            string
+	CSRFToken               string
 	AccessTokenExpiresAt    time.Time
 	RefreshTokenExpiresAt   time.Time
 	AuthenticationSessionID string
@@ -59,7 +60,8 @@ type SessionStore interface {
 		uuid.UUID,
 		[]byte,
 		time.Time,
-	) error
+		*string,
+	) (string, error)
 	FindAccessTokenByHash(
 		context.Context,
 		pgx.Tx,
@@ -204,7 +206,7 @@ func (s *AuthenticateService) Authenticate(
 		}
 
 		now := s.clock.Now()
-		_, csrfHash, err := NewOpaqueToken(s.random)
+		csrfRaw, csrfHash, err := NewOpaqueToken(s.random)
 		if err != nil {
 			return err
 		}
@@ -246,13 +248,14 @@ func (s *AuthenticateService) Authenticate(
 		if err != nil {
 			return fmt.Errorf("generate refresh token family id: %w", err)
 		}
-		if err := s.sessions.InsertRefreshToken(
+		if _, err := s.sessions.InsertRefreshToken(
 			ctx,
 			tx,
 			sessionID,
 			familyID,
 			refreshHash,
 			refreshExpires,
+			nil,
 		); err != nil {
 			return err
 		}
@@ -272,6 +275,7 @@ func (s *AuthenticateService) Authenticate(
 		credentials = IssuedCredentials{
 			AccessToken:             accessRaw,
 			RefreshToken:            refreshRaw,
+			CSRFToken:               csrfRaw,
 			AccessTokenExpiresAt:    accessExpires,
 			RefreshTokenExpiresAt:   refreshExpires,
 			AuthenticationSessionID: sessionID,
