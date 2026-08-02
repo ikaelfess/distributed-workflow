@@ -69,7 +69,18 @@ func run(ctx context.Context) error {
 		IdleTimeout:       appConfig.IdleTimeout,
 	}, application.Handler(), appLogger)
 
-	grpcServer := grpcapi.NewServer(application.ValidateService(), appLogger)
+	grpcServer, err := grpcapi.NewServer(
+		application.ValidateService(),
+		appLogger,
+		grpcapi.TLSFiles{
+			CertFile:     appConfig.GRPCTLSCertFile,
+			KeyFile:      appConfig.GRPCTLSKeyFile,
+			ClientCAFile: appConfig.GRPCTLSClientCAFile,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("configure grpc server: %w", err)
+	}
 
 	serverErrors := make(chan error, 2)
 	go func() {

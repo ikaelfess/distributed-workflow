@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 
+	authv3 "github.com/envoyproxy/go-control-plane/envoy/service/auth/v3"
 	iamv1 "github.com/ikaelfess/distributed-workflow/services/iam/api/gen/iam/v1"
 	"github.com/ikaelfess/distributed-workflow/services/iam/internal/identity"
 	"github.com/rs/zerolog"
@@ -17,20 +18,35 @@ import (
 
 type Server struct {
 	iamv1.UnimplementedTokenValidationServiceServer
+	authv3.UnimplementedAuthorizationServer
 	validate *identity.ValidateService
 	server   *grpc.Server
 	logger   zerolog.Logger
 }
 
-func NewServer(validate *identity.ValidateService, logger zerolog.Logger) *Server {
-	grpcServer := grpc.NewServer()
+func NewServer(
+	validate *identity.ValidateService,
+	logger zerolog.Logger,
+	tlsFiles TLSFiles,
+) (*Server, error) {
+	var options []grpc.ServerOption
+	creds, err := serverCredentials(tlsFiles)
+	if err != nil {
+		return nil, err
+	}
+	if creds != nil {
+		options = append(options, creds)
+	}
+
+	grpcServer := grpc.NewServer(options...)
 	server := &Server{
 		validate: validate,
 		server:   grpcServer,
 		logger:   logger,
 	}
 	iamv1.RegisterTokenValidationServiceServer(grpcServer, server)
-	return server
+	authv3.RegisterAuthorizationServer(grpcServer, server)
+	return server, nil
 }
 
 func (s *Server) Serve(listener net.Listener) error {

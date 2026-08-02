@@ -24,13 +24,16 @@ type Config struct {
 	ServiceName string `env:"SERVICE_NAME" env-default:"iam-service"`
 	AppEnv      string `env:"APP_ENV" env-default:"local"`
 
-	ServerAddress     string        `env:"SERVER_ADDRESS" env-default:"localhost:3000"`
-	GRPCAddress       string        `env:"GRPC_ADDRESS" env-default:"localhost:3001"`
-	ShutdownTimeout   time.Duration `env:"SHUTDOWN_TIMEOUT" env-default:"20s"`
-	ReadTimeout       time.Duration `env:"READ_TIMEOUT" env-default:"5s"`
-	ReadHeaderTimeout time.Duration `env:"READ_HEADER_TIMEOUT" env-default:"2s"`
-	WriteTimeout      time.Duration `env:"WRITE_TIMEOUT" env-default:"10s"`
-	IdleTimeout       time.Duration `env:"IDLE_TIMEOUT" env-default:"60s"`
+	ServerAddress       string        `env:"SERVER_ADDRESS" env-default:"localhost:3000"`
+	GRPCAddress         string        `env:"GRPC_ADDRESS" env-default:"localhost:3001"`
+	GRPCTLSCertFile     string        `env:"GRPC_TLS_CERT_FILE"`
+	GRPCTLSKeyFile      string        `env:"GRPC_TLS_KEY_FILE"`
+	GRPCTLSClientCAFile string        `env:"GRPC_TLS_CLIENT_CA_FILE"`
+	ShutdownTimeout     time.Duration `env:"SHUTDOWN_TIMEOUT" env-default:"20s"`
+	ReadTimeout         time.Duration `env:"READ_TIMEOUT" env-default:"5s"`
+	ReadHeaderTimeout   time.Duration `env:"READ_HEADER_TIMEOUT" env-default:"2s"`
+	WriteTimeout        time.Duration `env:"WRITE_TIMEOUT" env-default:"10s"`
+	IdleTimeout         time.Duration `env:"IDLE_TIMEOUT" env-default:"60s"`
 
 	AccessTokenTTL          time.Duration `env:"ACCESS_TOKEN_TTL" env-default:"15m"`
 	RefreshTokenTTL         time.Duration `env:"REFRESH_TOKEN_TTL" env-default:"720h"`
@@ -134,6 +137,20 @@ func (c Config) ValidateAPI() error {
 		validationErrors = append(
 			validationErrors,
 			errors.New("access token ttl must not exceed refresh token ttl"),
+		)
+	}
+	certSet := strings.TrimSpace(c.GRPCTLSCertFile) != ""
+	keySet := strings.TrimSpace(c.GRPCTLSKeyFile) != ""
+	if certSet != keySet {
+		validationErrors = append(
+			validationErrors,
+			errors.New("grpc tls cert and key files must be set together"),
+		)
+	}
+	if strings.TrimSpace(c.GRPCTLSClientCAFile) != "" && !certSet {
+		validationErrors = append(
+			validationErrors,
+			errors.New("grpc tls client ca requires grpc tls cert and key files"),
 		)
 	}
 	if c.RefreshReuseGracePeriod < 0 {

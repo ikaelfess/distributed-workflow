@@ -10,6 +10,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -281,6 +282,15 @@ func (p *processHandle) stop(t *testing.T) {
 	}()
 	select {
 	case err := <-waitResult:
+		if err == nil {
+			return
+		}
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
+			// Interrupted test helpers and docker --rm containers often exit
+			// non-zero after SIGINT; treat that as a successful stop.
+			return
+		}
 		require.NoErrorf(t, err, "process output: %s", p.output.String())
 	case <-time.After(5 * time.Second):
 		_ = p.command.Process.Kill()

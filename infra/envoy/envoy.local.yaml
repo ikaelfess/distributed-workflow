@@ -1,0 +1,166 @@
+# Local/insecure Envoy trust-boundary configuration.
+# Transport to IAM and the protected echo upstream is plaintext by design for
+# local development and integration tests. Production-like mTLS is in
+# envoy.mtls.yaml.
+admin:
+  address:
+    socket_address:
+      address: 127.0.0.1
+      port_value: 0
+
+static_resources:
+  listeners:
+    - name: gateway
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: __LISTEN_PORT__
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                codec_type: AUTO
+                use_remote_address: true
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: backend
+                      domains: ["*"]
+                      routes:
+                        - match:
+                            prefix: /v1/health/
+                          route:
+                            cluster: iam_http
+                            timeout: 5s
+                          typed_per_filter_config:
+                            envoy.filters.http.ext_authz:
+                              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+                              disabled: true
+                        - match:
+                            path: /v1/registrations
+                          route: &public_auth_route
+                            cluster: iam_http
+                            timeout: 5s
+                            rate_limits:
+                              - actions:
+                                  - remote_address: {}
+                          typed_per_filter_config: &public_auth_filters
+                            envoy.filters.http.ext_authz:
+                              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthzPerRoute
+                              disabled: true
+                            envoy.filters.http.local_ratelimit:
+                              "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+                              stat_prefix: public_auth_ratelimit
+                              token_bucket:
+                                max_tokens: 20
+                                tokens_per_fill: 20
+                                fill_interval: 1s
+                              filter_enabled:
+                                runtime_key: local_rate_limit_enabled
+                                default_value:
+                                  numerator: 100
+                                  denominator: HUNDRED
+                              filter_enforced:
+                                runtime_key: local_rate_limit_enforced
+                                default_value:
+                                  numerator: 100
+                                  denominator: HUNDRED
+                              # Wildcard remote_address value => one token bucket per client IP.
+                              descriptors:
+                                - entries:
+                                    - key: remote_address
+                                  token_bucket:
+                                    max_tokens: 20
+                                    tokens_per_fill: 20
+                                    fill_interval: 1s
+                              max_dynamic_descriptors: 1024
+                        - match:
+                            path: /v1/email-verifications
+                          route: *public_auth_route
+                          typed_per_filter_config: *public_auth_filters
+                        - match:
+                            path: /v1/login
+                          route: *public_auth_route
+                          typed_per_filter_config: *public_auth_filters
+                        - match:
+                            path: /v1/refresh
+                          route: *public_auth_route
+                          typed_per_filter_config: *public_auth_filters
+                        - match:
+                            prefix: /v1/
+                          route:
+                            cluster: iam_http
+                            timeout: 5s
+                        - match:
+                            prefix: /echo
+                          route:
+                            cluster: protected_echo
+                            timeout: 5s
+                http_filters:
+                  - name: envoy.filters.http.local_ratelimit
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+                      stat_prefix: http_local_rate_limiter
+                  - name: envoy.filters.http.ext_authz
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
+                      transport_api_version: V3
+                      failure_mode_allow: false
+                      status_on_error:
+                        code: ServiceUnavailable
+                      grpc_service:
+                        envoy_grpc:
+                          cluster_name: iam_authz
+                        timeout: 0.250s
+                      clear_route_cache: true
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+    - name: iam_authz
+      connect_timeout: 0.25s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          explicit_http_config:
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: iam_authz
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: __IAM_GRPC_HOST__
+                      port_value: __IAM_GRPC_PORT__
+    - name: iam_http
+      connect_timeout: 1s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: iam_http
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: __IAM_HTTP_HOST__
+                      port_value: __IAM_HTTP_PORT__
+    - name: protected_echo
+      connect_timeout: 1s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: protected_echo
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: __ECHO_HTTP_HOST__
+                      port_value: __ECHO_HTTP_PORT__
