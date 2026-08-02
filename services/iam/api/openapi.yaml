@@ -100,9 +100,11 @@ paths:
         Accepts a canonical Email Address and password. On success, creates an
         independent Authentication Session and sets host-scoped Secure,
         HttpOnly, SameSite=Lax cookies for the opaque Access Token
-        (`iam_access_token`) and Refresh Token (`iam_refresh_token`). Token
-        material is never returned in the JSON body. Failures for unknown,
-        invalid, Unverified, or Suspended Users share one generic response.
+        (`iam_access_token`) and Refresh Token (`iam_refresh_token`), plus a
+        Secure SameSite=Lax CSRF cookie (`iam_csrf`) that is readable by
+        JavaScript. Token material is never returned in the JSON body.
+        Failures for unknown, invalid, Unverified, or Suspended Users share
+        one generic response.
       requestBody:
         required: true
         content:
@@ -115,8 +117,10 @@ paths:
           headers:
             Set-Cookie:
               description: >
-                Access and Refresh Token cookies. Each is Secure, HttpOnly,
-                SameSite=Lax, Path=/, and host-scoped (no Domain attribute).
+                Access Token, Refresh Token, and CSRF cookies. Access and
+                Refresh cookies are Secure, HttpOnly, SameSite=Lax, Path=/,
+                and host-scoped. The CSRF cookie is Secure, SameSite=Lax,
+                Path=/, host-scoped, and not HttpOnly.
               schema:
                 type: string
         "400":
@@ -133,7 +137,188 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "405":
           $ref: "#/components/responses/MethodNotAllowedPost"
+  /v1/refresh:
+    post:
+      operationId: refreshAuthenticationSession
+      summary: Rotate Access and Refresh Tokens
+      description: >
+        Consumes the Refresh Token cookie, atomically issues a new Access Token
+        and Refresh Token for the same Authentication Session, and invalidates
+        the consumed Refresh Token. Requires a same-site Origin from the
+        allowlist and an `X-CSRF-Token` header bound to the Authentication
+        Session. Concurrent reuse within the grace period is rejected without
+        revoking the token family; reuse after the grace period revokes the
+        family. Failures do not clear newer browser credentials.
+      parameters:
+        - $ref: "#/components/parameters/Origin"
+        - $ref: "#/components/parameters/CSRFToken"
+      responses:
+        "204":
+          description: Tokens were rotated and cookies were updated.
+          headers:
+            Set-Cookie:
+              description: Rotated Access and Refresh Token cookies.
+              schema:
+                type: string
+        "401":
+          description: Refresh failed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Origin or CSRF validation failed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedPost"
+  /v1/logout:
+    post:
+      operationId: logoutCurrentAuthenticationSession
+      summary: Log out the current Authentication Session
+      description: >
+        Revokes the Authentication Session identified by the Access Token
+        cookie and clears credential cookies. Requires Origin and CSRF checks.
+      parameters:
+        - $ref: "#/components/parameters/Origin"
+        - $ref: "#/components/parameters/CSRFToken"
+      responses:
+        "204":
+          description: The current Authentication Session was revoked.
+          headers:
+            Set-Cookie:
+              description: Cleared Access, Refresh, and CSRF cookies.
+              schema:
+                type: string
+        "401":
+          description: The Access Token is missing or invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Origin or CSRF validation failed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedPost"
+  /v1/authentication-sessions:
+    get:
+      operationId: listAuthenticationSessions
+      summary: List the caller's Authentication Sessions
+      description: >
+        Returns safe metadata for independently created Authentication
+        Sessions belonging to the User identified by the Access Token cookie.
+        Token material is never included.
+      responses:
+        "200":
+          description: Authentication Sessions were listed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthenticationSessionList"
+        "401":
+          description: The Access Token is missing or invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedGet"
+    delete:
+      operationId: revokeAllAuthenticationSessions
+      summary: Revoke every Authentication Session for the caller
+      description: >
+        Revokes all Authentication Sessions for the User identified by the
+        Access Token cookie and clears credential cookies. Requires Origin and
+        CSRF checks.
+      parameters:
+        - $ref: "#/components/parameters/Origin"
+        - $ref: "#/components/parameters/CSRFToken"
+      responses:
+        "204":
+          description: All Authentication Sessions were revoked.
+          headers:
+            Set-Cookie:
+              description: Cleared Access, Refresh, and CSRF cookies.
+              schema:
+                type: string
+        "401":
+          description: The Access Token is missing or invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Origin or CSRF validation failed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedDelete"
+  /v1/authentication-sessions/{authenticationSessionId}:
+    parameters:
+      - name: authenticationSessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      operationId: revokeAuthenticationSession
+      summary: Revoke one Authentication Session
+      description: >
+        Revokes a single Authentication Session owned by the caller. When the
+        current Authentication Session is revoked, credential cookies are
+        cleared. Requires Origin and CSRF checks.
+      parameters:
+        - $ref: "#/components/parameters/Origin"
+        - $ref: "#/components/parameters/CSRFToken"
+      responses:
+        "204":
+          description: The Authentication Session was revoked.
+        "401":
+          description: The Access Token is missing or invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Origin or CSRF validation failed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: The Authentication Session was not found for this User.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedDelete"
 components:
+  parameters:
+    Origin:
+      name: Origin
+      in: header
+      required: true
+      description: Same-site browser Origin that must match the configured allowlist.
+      schema:
+        type: string
+    CSRFToken:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      description: CSRF token bound to the current Authentication Session.
+      schema:
+        type: string
+        minLength: 1
   schemas:
     Health:
       type: object
@@ -190,6 +375,43 @@ components:
           type: string
           minLength: 1
           maxLength: 128
+    AuthenticationSessionList:
+      type: object
+      additionalProperties: false
+      required:
+        - authentication_sessions
+      properties:
+        authentication_sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuthenticationSession"
+    AuthenticationSession:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - created_at
+        - last_used_at
+        - client_metadata
+        - current
+      properties:
+        id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        last_used_at:
+          type: string
+          format: date-time
+        client_metadata:
+          type: string
+        ip:
+          type: string
+          description: Client IP observed at Authentication Session creation, when known.
+        current:
+          type: boolean
+          description: True when this Authentication Session matches the caller's Access Token.
     Problem:
       type: object
       additionalProperties: false
@@ -221,6 +443,18 @@ components:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+    MethodNotAllowedGet:
+      description: The resource does not support the request method.
+      headers:
+        Allow:
+          description: Methods accepted by this resource.
+          schema:
+            type: string
+            const: GET
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
     MethodNotAllowedPost:
       description: The resource does not support the request method.
       headers:
@@ -229,6 +463,18 @@ components:
           schema:
             type: string
             const: POST
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    MethodNotAllowedDelete:
+      description: The resource does not support the request method.
+      headers:
+        Allow:
+          description: Methods accepted by this resource.
+          schema:
+            type: string
+            const: DELETE
       content:
         application/problem+json:
           schema:

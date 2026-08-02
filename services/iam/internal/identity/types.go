@@ -19,6 +19,12 @@ const (
 	AuditAuthenticationFailed    = "authentication.failed"
 	AuditValidationSucceeded     = "validation.succeeded"
 	AuditValidationFailed        = "validation.failed"
+	AuditRefreshSucceeded        = "authentication.refresh.succeeded"
+	AuditRefreshRejected         = "authentication.refresh.rejected"
+	AuditRefreshReuseDetected    = "authentication.refresh.reuse_detected"
+	AuditLogoutSucceeded         = "authentication.logout.succeeded"
+	AuditSessionRevoked          = "authentication.session.revoked"
+	AuditSessionsRevokedAll      = "authentication.sessions.revoked_all"
 
 	RetentionRoutine   = "routine"
 	RetentionSensitive = "sensitive"

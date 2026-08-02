@@ -70,6 +70,7 @@ func TestFoundation_HealthAgainstPostgres(t *testing.T) {
 		"LOG_LEVEL=info",
 		"NOTIFICATIONS_DELIVERY_PUBLIC_KEY_FILE="+publicKeyFile,
 		"NOTIFICATIONS_DELIVERY_KEY_ID=notifications-test",
+		"ALLOWED_ORIGINS=https://app.example.com",
 	)
 	command.Stdout = &processOutput
 	command.Stderr = &processOutput

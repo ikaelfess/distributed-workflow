@@ -102,6 +102,32 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		return nil, err
 	}
 
+	refresh, err := identity.NewRefreshService(
+		sessions,
+		audits,
+		database,
+		cfg.AccessTokenTTL,
+		cfg.RefreshTokenTTL,
+		cfg.RefreshReuseGracePeriod,
+		identity.SystemClock{},
+		nil,
+	)
+	if err != nil {
+		database.Close()
+		return nil, err
+	}
+
+	sessionService, err := identity.NewSessionService(
+		sessions,
+		audits,
+		database,
+		identity.SystemClock{},
+	)
+	if err != nil {
+		database.Close()
+		return nil, err
+	}
+
 	validate, err := identity.NewValidateService(
 		sessions,
 		audits,
@@ -120,6 +146,9 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 			Register:     register,
 			Verify:       verify,
 			Authenticate: authenticate,
+			Refresh:      refresh,
+			Sessions:     sessionService,
+			Origins:      httpapi.NewOriginPolicy(cfg.AllowedOriginList()),
 		}),
 		validate: validate,
 	}, nil
