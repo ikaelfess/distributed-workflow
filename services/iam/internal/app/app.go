@@ -19,6 +19,7 @@ type App struct {
 	closeOnce sync.Once
 	database  *postgres.Database
 	handler   http.Handler
+	validate  *identity.ValidateService
 }
 
 func New(ctx context.Context, cfg config.Config) (*App, error) {
@@ -53,6 +54,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	users := postgres.NewUserStore()
 	challenges := postgres.NewChallengeStore()
 	audits := postgres.NewAuditStore()
+	sessions := postgres.NewSessionStore()
 
 	register, err := identity.NewRegisterService(
 		users,
@@ -84,18 +86,51 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		return nil, err
 	}
 
+	authenticate, err := identity.NewAuthenticateService(
+		users,
+		sessions,
+		audits,
+		database,
+		passwords,
+		cfg.AccessTokenTTL,
+		cfg.RefreshTokenTTL,
+		identity.SystemClock{},
+		nil,
+	)
+	if err != nil {
+		database.Close()
+		return nil, err
+	}
+
+	validate, err := identity.NewValidateService(
+		sessions,
+		audits,
+		database,
+		identity.SystemClock{},
+	)
+	if err != nil {
+		database.Close()
+		return nil, err
+	}
+
 	return &App{
 		database: database,
 		handler: httpapi.NewHandler(httpapi.Dependencies{
-			Readiness: database,
-			Register:  register,
-			Verify:    verify,
+			Readiness:    database,
+			Register:     register,
+			Verify:       verify,
+			Authenticate: authenticate,
 		}),
+		validate: validate,
 	}, nil
 }
 
 func (a *App) Handler() http.Handler {
 	return a.handler
+}
+
+func (a *App) ValidateService() *identity.ValidateService {
+	return a.validate
 }
 
 func (a *App) Close() {

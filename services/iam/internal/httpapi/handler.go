@@ -6,7 +6,10 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/netip"
+	"strings"
 
 	"github.com/ikaelfess/distributed-workflow/services/iam/internal/identity"
 )
@@ -18,10 +21,11 @@ type ReadinessProbe interface {
 }
 
 type Handler struct {
-	readiness ReadinessProbe
-	register  *identity.RegisterService
-	verify    *identity.VerifyService
-	mux       *http.ServeMux
+	readiness    ReadinessProbe
+	register     *identity.RegisterService
+	verify       *identity.VerifyService
+	authenticate *identity.AuthenticateService
+	mux          *http.ServeMux
 }
 
 type healthResponse struct {
@@ -48,18 +52,25 @@ type verificationRequest struct {
 	Challenge string `json:"challenge"`
 }
 
+type loginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type Dependencies struct {
-	Readiness ReadinessProbe
-	Register  *identity.RegisterService
-	Verify    *identity.VerifyService
+	Readiness    ReadinessProbe
+	Register     *identity.RegisterService
+	Verify       *identity.VerifyService
+	Authenticate *identity.AuthenticateService
 }
 
 func NewHandler(deps Dependencies) *Handler {
 	h := &Handler{
-		readiness: deps.Readiness,
-		register:  deps.Register,
-		verify:    deps.Verify,
-		mux:       http.NewServeMux(),
+		readiness:    deps.Readiness,
+		register:     deps.Register,
+		verify:       deps.Verify,
+		authenticate: deps.Authenticate,
+		mux:          http.NewServeMux(),
 	}
 
 	h.mux.HandleFunc("GET /v1/health/live", h.handleLiveness)
@@ -72,6 +83,8 @@ func NewHandler(deps Dependencies) *Handler {
 	h.mux.HandleFunc("/v1/registrations", h.handlePostOnlyMethodNotAllowed)
 	h.mux.HandleFunc("POST /v1/email-verifications", h.handleVerifyEmail)
 	h.mux.HandleFunc("/v1/email-verifications", h.handlePostOnlyMethodNotAllowed)
+	h.mux.HandleFunc("POST /v1/login", h.handleLogin)
+	h.mux.HandleFunc("/v1/login", h.handlePostOnlyMethodNotAllowed)
 	h.mux.HandleFunc("/", h.handleNotFound)
 
 	return h
@@ -198,6 +211,77 @@ func (h *Handler) handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
+	if h.authenticate == nil {
+		writeProblem(
+			w,
+			http.StatusServiceUnavailable,
+			"service-unavailable",
+			"service unavailable",
+			"authentication is unavailable",
+		)
+		return
+	}
+
+	var request loginRequest
+	if err := decodeJSON(r, &request); err != nil {
+		writeProblem(
+			w,
+			http.StatusBadRequest,
+			"invalid-request",
+			"invalid request",
+			"the request body is invalid",
+		)
+		return
+	}
+
+	credentials, err := h.authenticate.Authenticate(
+		r.Context(),
+		request.Email,
+		request.Password,
+		identity.SessionClientInfo{
+			UserAgent: r.UserAgent(),
+			IP:        clientIP(r),
+		},
+	)
+	if errors.Is(err, identity.ErrAuthenticationFailed) {
+		writeProblem(
+			w,
+			http.StatusUnauthorized,
+			"authentication-failed",
+			"authentication failed",
+			"the email address or password is incorrect",
+		)
+		return
+	}
+	if err != nil {
+		slog.ErrorContext(r.Context(), "authentication request errored", "error", err)
+		writeProblem(
+			w,
+			http.StatusInternalServerError,
+			"internal-error",
+			"internal error",
+			"the authentication request could not be completed",
+		)
+		return
+	}
+
+	setCredentialCookies(w, credentials)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func clientIP(r *http.Request) netip.Addr {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	addr, err := netip.ParseAddr(strings.TrimSpace(host))
+	if err != nil {
+		return netip.Addr{}
+	}
+	return addr
 }
 
 func (h *Handler) handleGetOnlyMethodNotAllowed(w http.ResponseWriter, _ *http.Request) {

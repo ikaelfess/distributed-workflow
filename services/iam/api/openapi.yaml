@@ -92,6 +92,47 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "405":
           $ref: "#/components/responses/MethodNotAllowedPost"
+  /v1/login:
+    post:
+      operationId: loginUser
+      summary: Authenticate an active User
+      description: >
+        Accepts a canonical Email Address and password. On success, creates an
+        independent Authentication Session and sets host-scoped Secure,
+        HttpOnly, SameSite=Lax cookies for the opaque Access Token
+        (`iam_access_token`) and Refresh Token (`iam_refresh_token`). Token
+        material is never returned in the JSON body. Failures for unknown,
+        invalid, Unverified, or Suspended Users share one generic response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "204":
+          description: Authentication succeeded and cookies were set.
+          headers:
+            Set-Cookie:
+              description: >
+                Access and Refresh Token cookies. Each is Secure, HttpOnly,
+                SameSite=Lax, Path=/, and host-scoped (no Domain attribute).
+              schema:
+                type: string
+        "400":
+          description: The login request body is invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          description: Authentication failed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedPost"
 components:
   schemas:
     Health:
@@ -135,6 +176,20 @@ components:
         challenge:
           type: string
           minLength: 1
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+          maxLength: 128
     Problem:
       type: object
       additionalProperties: false

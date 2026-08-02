@@ -8,12 +8,15 @@ services:
         condition: service_completed_successfully
     environment:
       SERVER_ADDRESS: "0.0.0.0:3000"
+      GRPC_ADDRESS: "0.0.0.0:3003"
       DATABASE_URL: postgres://postgres:postgres@iam_database:5432/iam_db?sslmode=disable
       APP_ENV: local
+      EMAIL_DELIVERY_TOPIC: iam.email-delivery-request.v1
       NOTIFICATIONS_DELIVERY_PUBLIC_KEY_FILE: /app/testdata/notifications-local.pub.pem
       NOTIFICATIONS_DELIVERY_KEY_ID: notifications-local
     ports:
       - "3001:3000"
+      - "3003:3003"
     volumes:
       - .:/app
     networks:
@@ -42,11 +45,14 @@ services:
         condition: service_healthy
       iam_kafka:
         condition: service_healthy
+      iam_kafka_init:
+        condition: service_completed_successfully
       iam_migrations:
         condition: service_completed_successfully
     environment:
       DATABASE_URL: postgres://postgres:postgres@iam_database:5432/iam_db?sslmode=disable
       KAFKA_BROKERS: iam_kafka:19092
+      EMAIL_DELIVERY_TOPIC: iam.email-delivery-request.v1
       RELAY_SERVER_ADDRESS: "0.0.0.0:3002"
       APP_ENV: local
     ports:
@@ -108,3 +114,30 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+
+  iam_kafka_init:
+    image: apache/kafka:4.3.1
+    depends_on:
+      iam_kafka:
+        condition: service_healthy
+    environment:
+      EMAIL_DELIVERY_TOPIC: iam.email-delivery-request.v1
+    networks:
+      - distributed-workflow
+    restart: "no"
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        set -euo pipefail
+        /opt/kafka/bin/kafka-topics.sh \
+          --bootstrap-server iam_kafka:19092 \
+          --create \
+          --if-not-exists \
+          --topic "$${EMAIL_DELIVERY_TOPIC}" \
+          --partitions 1 \
+          --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh \
+          --bootstrap-server iam_kafka:19092 \
+          --describe \
+          --topic "$${EMAIL_DELIVERY_TOPIC}"
