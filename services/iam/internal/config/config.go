@@ -50,7 +50,8 @@ type Config struct {
 	RelayPollInterval  time.Duration `env:"RELAY_POLL_INTERVAL" env-default:"1s"`
 	RelayRetryDelay    time.Duration `env:"RELAY_RETRY_DELAY" env-default:"5s"`
 
-	VerificationChallengeTTL time.Duration `env:"VERIFICATION_CHALLENGE_TTL" env-default:"24h"`
+	VerificationChallengeTTL  time.Duration `env:"VERIFICATION_CHALLENGE_TTL" env-default:"24h"`
+	PasswordResetChallengeTTL time.Duration `env:"PASSWORD_RESET_CHALLENGE_TTL" env-default:"30m"`
 }
 
 func Load() (Config, error) {
@@ -116,6 +117,12 @@ func (c Config) ValidateAPI() error {
 		validationErrors = append(
 			validationErrors,
 			errors.New("verification challenge ttl must be greater than zero"),
+		)
+	}
+	if c.PasswordResetChallengeTTL <= 0 {
+		validationErrors = append(
+			validationErrors,
+			errors.New("password reset challenge ttl must be greater than zero"),
 		)
 	}
 	if c.AccessTokenTTL <= 0 {

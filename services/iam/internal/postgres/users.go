@@ -46,6 +46,36 @@ func (s *UserStore) FindByEmail(
 	return &user, nil
 }
 
+func (s *UserStore) FindByID(
+	ctx context.Context,
+	tx pgx.Tx,
+	userID string,
+) (*identity.User, error) {
+	row := tx.QueryRow(ctx, `
+		SELECT id, email, password_hash, status, access_level, email_verified_at
+		FROM users
+		WHERE id = $1
+		FOR UPDATE
+	`, userID)
+
+	var user identity.User
+	err := row.Scan(
+		&user.ID,
+		&user.Email,
+		&user.PasswordHash,
+		&user.Status,
+		&user.AccessLevel,
+		&user.EmailVerifiedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("find user by id: %w", err)
+	}
+	return &user, nil
+}
+
 func (s *UserStore) InsertUnverified(
 	ctx context.Context,
 	tx pgx.Tx,
@@ -93,13 +123,12 @@ func (s *UserStore) UpdatePasswordHash(
 		SET password_hash = $2,
 		    updated_at = NOW()
 		WHERE id = $1
-		  AND status = $3
-	`, userID, passwordHash, identity.StatusUnverified)
+	`, userID, passwordHash)
 	if err != nil {
 		return fmt.Errorf("update password hash: %w", err)
 	}
 	if tag.RowsAffected() != 1 {
-		return fmt.Errorf("update password hash: user not found or not unverified")
+		return fmt.Errorf("update password hash: user not found")
 	}
 	return nil
 }

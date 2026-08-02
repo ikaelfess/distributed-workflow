@@ -58,6 +58,7 @@ func (s *ChallengeStore) FindUsableByTokenHash(
 	ctx context.Context,
 	tx pgx.Tx,
 	tokenHash []byte,
+	challengeType string,
 	now time.Time,
 ) (identity.Challenge, error) {
 	row := tx.QueryRow(ctx, `
@@ -69,7 +70,7 @@ func (s *ChallengeStore) FindUsableByTokenHash(
 		  AND superseded_at IS NULL
 		  AND expires_at > $3
 		FOR UPDATE
-	`, tokenHash, identity.ChallengeTypeVerification, now)
+	`, tokenHash, challengeType, now)
 
 	var challenge identity.Challenge
 	err := row.Scan(
@@ -79,7 +80,7 @@ func (s *ChallengeStore) FindUsableByTokenHash(
 		&challenge.ExpiresAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return identity.Challenge{}, identity.ErrInvalidVerification
+		return identity.Challenge{}, identity.ErrChallengeNotUsable
 	}
 	if err != nil {
 		return identity.Challenge{}, fmt.Errorf("find challenge: %w", err)
@@ -104,7 +105,7 @@ func (s *ChallengeStore) Consume(
 		return fmt.Errorf("consume challenge: %w", err)
 	}
 	if tag.RowsAffected() != 1 {
-		return identity.ErrInvalidVerification
+		return identity.ErrChallengeNotUsable
 	}
 	return nil
 }

@@ -128,6 +128,39 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		return nil, err
 	}
 
+	passwordReset, err := identity.NewPasswordResetService(
+		users,
+		challenges,
+		sessions,
+		audits,
+		outboxStore,
+		database,
+		passwords,
+		encryptor,
+		cfg.EmailDeliveryTopic,
+		cfg.PasswordResetChallengeTTL,
+		cfg.VerificationChallengeTTL,
+		identity.SystemClock{},
+		nil,
+	)
+	if err != nil {
+		database.Close()
+		return nil, err
+	}
+
+	passwordChange, err := identity.NewPasswordChangeService(
+		users,
+		sessions,
+		audits,
+		database,
+		passwords,
+		identity.SystemClock{},
+	)
+	if err != nil {
+		database.Close()
+		return nil, err
+	}
+
 	validate, err := identity.NewValidateService(
 		sessions,
 		audits,
@@ -142,13 +175,15 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	return &App{
 		database: database,
 		handler: httpapi.NewHandler(httpapi.Dependencies{
-			Readiness:    database,
-			Register:     register,
-			Verify:       verify,
-			Authenticate: authenticate,
-			Refresh:      refresh,
-			Sessions:     sessionService,
-			Origins:      httpapi.NewOriginPolicy(cfg.AllowedOriginList()),
+			Readiness:      database,
+			Register:       register,
+			Verify:         verify,
+			Authenticate:   authenticate,
+			Refresh:        refresh,
+			Sessions:       sessionService,
+			PasswordReset:  passwordReset,
+			PasswordChange: passwordChange,
+			Origins:        httpapi.NewOriginPolicy(cfg.AllowedOriginList()),
 		}),
 		validate: validate,
 	}, nil

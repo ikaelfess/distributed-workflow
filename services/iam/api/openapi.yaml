@@ -206,6 +206,105 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "405":
           $ref: "#/components/responses/MethodNotAllowedPost"
+  /v1/password-resets:
+    post:
+      operationId: requestPasswordReset
+      summary: Request a password-reset or verification challenge
+      description: >
+        Always returns the same generic acceptance response. Verified active or
+        Suspended Users receive an encrypted password-reset delivery request;
+        Unverified Users receive a new verification challenge instead.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetRequest"
+      responses:
+        "202":
+          description: The password-reset request was accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Accepted"
+        "400":
+          description: The request body is invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedPost"
+  /v1/password-reset-completions:
+    post:
+      operationId: completePasswordReset
+      summary: Consume a password-reset challenge
+      description: >
+        Stores a new Argon2id password hash, revokes every Authentication
+        Session, and does not create a new session. Suspended Users remain
+        suspended.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordResetCompletionRequest"
+      responses:
+        "204":
+          description: The password was reset.
+        "400":
+          description: The challenge or password is invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedPost"
+  /v1/password-changes:
+    post:
+      operationId: changePassword
+      summary: Change the authenticated User's password
+      description: >
+        Requires the current password, Origin, and CSRF checks. On success,
+        stores a new Argon2id hash, revokes every Authentication Session
+        including the current one, and clears credential cookies.
+      parameters:
+        - $ref: "#/components/parameters/Origin"
+        - $ref: "#/components/parameters/CSRFToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordChangeRequest"
+      responses:
+        "204":
+          description: The password was changed and sessions were revoked.
+          headers:
+            Set-Cookie:
+              description: Cleared Access, Refresh, and CSRF cookies.
+              schema:
+                type: string
+        "400":
+          description: The current password is wrong or the new password is invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          description: The Access Token is missing or invalid.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Origin or CSRF validation failed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedPost"
   /v1/authentication-sessions:
     get:
       operationId: listAuthenticationSessions
@@ -374,6 +473,44 @@ components:
         password:
           type: string
           minLength: 1
+          maxLength: 128
+    PasswordResetRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+    PasswordResetCompletionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - challenge
+        - new_password
+      properties:
+        challenge:
+          type: string
+          minLength: 1
+        new_password:
+          type: string
+          minLength: 12
+          maxLength: 128
+    PasswordChangeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - current_password
+        - new_password
+      properties:
+        current_password:
+          type: string
+          minLength: 1
+          maxLength: 128
+        new_password:
+          type: string
+          minLength: 12
           maxLength: 128
     AuthenticationSessionList:
       type: object

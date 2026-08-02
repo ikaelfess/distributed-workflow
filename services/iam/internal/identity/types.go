@@ -10,7 +10,8 @@ const (
 	AccessLevelStandard      = "standard"
 	AccessLevelAdministrator = "administrator"
 
-	ChallengeTypeVerification = "verification"
+	ChallengeTypeVerification  = "verification"
+	ChallengeTypePasswordReset = "password_reset"
 
 	AuditRegistrationAccepted    = "registration.accepted"
 	AuditVerificationSucceeded   = "verification.succeeded"
@@ -25,11 +26,17 @@ const (
 	AuditLogoutSucceeded         = "authentication.logout.succeeded"
 	AuditSessionRevoked          = "authentication.session.revoked"
 	AuditSessionsRevokedAll      = "authentication.sessions.revoked_all"
+	AuditPasswordResetRequested  = "password.reset.requested"
+	AuditPasswordResetSucceeded  = "password.reset.succeeded"
+	AuditPasswordResetFailed     = "password.reset.failed"
+	AuditPasswordChangeSucceeded = "password.change.succeeded"
+	AuditPasswordChangeFailed    = "password.change.failed"
 
 	RetentionRoutine   = "routine"
 	RetentionSensitive = "sensitive"
 
-	EmailTemplateVerify = "verify-email"
+	EmailTemplateVerify        = "verify-email"
+	EmailTemplatePasswordReset = "password-reset"
 )
 
 type User struct {

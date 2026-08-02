@@ -11,6 +11,7 @@ import (
 var (
 	ErrInvalidRegistration = errors.New("invalid registration")
 	ErrInvalidVerification = errors.New("invalid verification")
+	ErrChallengeNotUsable  = errors.New("challenge not usable")
 )
 
 type VerifyService struct {
@@ -54,12 +55,24 @@ func (s *VerifyService) VerifyEmail(ctx context.Context, rawToken string) error 
 
 	now := s.clock.Now()
 	err = s.tx.WithinTransaction(ctx, func(ctx context.Context, tx pgx.Tx) error {
-		challenge, err := s.challenges.FindUsableByTokenHash(ctx, tx, tokenHash, now)
+		challenge, err := s.challenges.FindUsableByTokenHash(
+			ctx,
+			tx,
+			tokenHash,
+			ChallengeTypeVerification,
+			now,
+		)
+		if errors.Is(err, ErrChallengeNotUsable) {
+			return ErrInvalidVerification
+		}
 		if err != nil {
 			return err
 		}
 
 		if err := s.challenges.Consume(ctx, tx, challenge.ID, now); err != nil {
+			if errors.Is(err, ErrChallengeNotUsable) {
+				return ErrInvalidVerification
+			}
 			return err
 		}
 		if err := s.users.Activate(ctx, tx, challenge.UserID, now); err != nil {

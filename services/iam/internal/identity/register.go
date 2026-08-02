@@ -27,6 +27,7 @@ type TransactionManager interface {
 
 type UserStore interface {
 	FindByEmail(context.Context, pgx.Tx, EmailAddress) (*User, error)
+	FindByID(context.Context, pgx.Tx, string) (*User, error)
 	// InsertUnverified inserts a new unverified user. When the email already
 	// exists, it returns (nil, nil) without aborting the transaction.
 	InsertUnverified(context.Context, pgx.Tx, EmailAddress, string) (*User, error)
@@ -44,7 +45,13 @@ type ChallengeStore interface {
 		[]byte,
 		time.Time,
 	) error
-	FindUsableByTokenHash(context.Context, pgx.Tx, []byte, time.Time) (Challenge, error)
+	FindUsableByTokenHash(
+		context.Context,
+		pgx.Tx,
+		[]byte,
+		string,
+		time.Time,
+	) (Challenge, error)
 	Consume(context.Context, pgx.Tx, string, time.Time) error
 }
 

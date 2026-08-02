@@ -330,6 +330,16 @@ func consumeChallenge(
 	privateKey *rsa.PrivateKey,
 ) consumedChallenge {
 	t.Helper()
+	return consumeDeliveryChallenge(t, client, privateKey, "verify-email")
+}
+
+func consumeDeliveryChallenge(
+	t *testing.T,
+	client *kgo.Client,
+	privateKey *rsa.PrivateKey,
+	template string,
+) consumedChallenge {
+	t.Helper()
 
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
@@ -346,7 +356,7 @@ func consumeChallenge(
 			require.NoError(t, err)
 			var payload delivery.EmailPayload
 			require.NoError(t, json.Unmarshal(plaintext, &payload))
-			require.Equal(t, "verify-email", payload.Template)
+			require.Equal(t, template, payload.Template)
 			require.NotEmpty(t, payload.Variables["challenge"])
 			return consumedChallenge{
 				token:     payload.Variables["challenge"],

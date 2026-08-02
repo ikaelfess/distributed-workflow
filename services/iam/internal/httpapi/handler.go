@@ -22,14 +22,16 @@ type ReadinessProbe interface {
 }
 
 type Handler struct {
-	readiness    ReadinessProbe
-	register     *identity.RegisterService
-	verify       *identity.VerifyService
-	authenticate *identity.AuthenticateService
-	refresh      *identity.RefreshService
-	sessions     *identity.SessionService
-	origins      OriginPolicy
-	mux          *http.ServeMux
+	readiness      ReadinessProbe
+	register       *identity.RegisterService
+	verify         *identity.VerifyService
+	authenticate   *identity.AuthenticateService
+	refresh        *identity.RefreshService
+	sessions       *identity.SessionService
+	passwordReset  *identity.PasswordResetService
+	passwordChange *identity.PasswordChangeService
+	origins        OriginPolicy
+	mux            *http.ServeMux
 }
 
 type healthResponse struct {
@@ -61,6 +63,20 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
+type passwordResetRequest struct {
+	Email string `json:"email"`
+}
+
+type passwordResetCompletionRequest struct {
+	Challenge   string `json:"challenge"`
+	NewPassword string `json:"new_password"`
+}
+
+type passwordChangeRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
 type authenticationSessionResponse struct {
 	ID             string `json:"id"`
 	CreatedAt      string `json:"created_at"`
@@ -75,25 +91,29 @@ type authenticationSessionListResponse struct {
 }
 
 type Dependencies struct {
-	Readiness    ReadinessProbe
-	Register     *identity.RegisterService
-	Verify       *identity.VerifyService
-	Authenticate *identity.AuthenticateService
-	Refresh      *identity.RefreshService
-	Sessions     *identity.SessionService
-	Origins      OriginPolicy
+	Readiness      ReadinessProbe
+	Register       *identity.RegisterService
+	Verify         *identity.VerifyService
+	Authenticate   *identity.AuthenticateService
+	Refresh        *identity.RefreshService
+	Sessions       *identity.SessionService
+	PasswordReset  *identity.PasswordResetService
+	PasswordChange *identity.PasswordChangeService
+	Origins        OriginPolicy
 }
 
 func NewHandler(deps Dependencies) http.Handler {
 	h := &Handler{
-		readiness:    deps.Readiness,
-		register:     deps.Register,
-		verify:       deps.Verify,
-		authenticate: deps.Authenticate,
-		refresh:      deps.Refresh,
-		sessions:     deps.Sessions,
-		origins:      deps.Origins,
-		mux:          http.NewServeMux(),
+		readiness:      deps.Readiness,
+		register:       deps.Register,
+		verify:         deps.Verify,
+		authenticate:   deps.Authenticate,
+		refresh:        deps.Refresh,
+		sessions:       deps.Sessions,
+		passwordReset:  deps.PasswordReset,
+		passwordChange: deps.PasswordChange,
+		origins:        deps.Origins,
+		mux:            http.NewServeMux(),
 	}
 
 	h.mux.HandleFunc("GET /v1/health/live", h.handleLiveness)
@@ -112,6 +132,12 @@ func NewHandler(deps Dependencies) http.Handler {
 	h.mux.HandleFunc("/v1/refresh", h.handlePostOnlyMethodNotAllowed)
 	h.mux.HandleFunc("POST /v1/logout", h.handleLogout)
 	h.mux.HandleFunc("/v1/logout", h.handlePostOnlyMethodNotAllowed)
+	h.mux.HandleFunc("POST /v1/password-resets", h.handleRequestPasswordReset)
+	h.mux.HandleFunc("/v1/password-resets", h.handlePostOnlyMethodNotAllowed)
+	h.mux.HandleFunc("POST /v1/password-reset-completions", h.handleCompletePasswordReset)
+	h.mux.HandleFunc("/v1/password-reset-completions", h.handlePostOnlyMethodNotAllowed)
+	h.mux.HandleFunc("POST /v1/password-changes", h.handleChangePassword)
+	h.mux.HandleFunc("/v1/password-changes", h.handlePostOnlyMethodNotAllowed)
 	h.mux.HandleFunc("GET /v1/authentication-sessions", h.handleListSessions)
 	h.mux.HandleFunc(
 		"DELETE /v1/authentication-sessions",
@@ -431,6 +457,179 @@ func (h *Handler) handleLogout(w http.ResponseWriter, r *http.Request) {
 			"internal-error",
 			"internal error",
 			"the logout request could not be completed",
+		)
+		return
+	}
+
+	clearCredentialCookies(w)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) handleRequestPasswordReset(w http.ResponseWriter, r *http.Request) {
+	if h.passwordReset == nil {
+		writeProblem(
+			w,
+			http.StatusServiceUnavailable,
+			"service-unavailable",
+			"service unavailable",
+			"password reset is unavailable",
+		)
+		return
+	}
+
+	var request passwordResetRequest
+	if err := decodeJSON(r, &request); err != nil {
+		writeProblem(
+			w,
+			http.StatusBadRequest,
+			"invalid-request",
+			"invalid request",
+			"the request body is invalid",
+		)
+		return
+	}
+
+	if err := h.passwordReset.Request(r.Context(), request.Email); err != nil {
+		slog.ErrorContext(r.Context(), "password reset request errored", "error", err)
+		writeProblem(
+			w,
+			http.StatusInternalServerError,
+			"internal-error",
+			"internal error",
+			"the password reset request could not be completed",
+		)
+		return
+	}
+
+	writeJSON(w, http.StatusAccepted, acceptedResponse{Status: "accepted"})
+}
+
+func (h *Handler) handleCompletePasswordReset(w http.ResponseWriter, r *http.Request) {
+	if h.passwordReset == nil {
+		writeProblem(
+			w,
+			http.StatusServiceUnavailable,
+			"service-unavailable",
+			"service unavailable",
+			"password reset is unavailable",
+		)
+		return
+	}
+
+	var request passwordResetCompletionRequest
+	if err := decodeJSON(r, &request); err != nil {
+		writeProblem(
+			w,
+			http.StatusBadRequest,
+			"invalid-request",
+			"invalid request",
+			"the request body is invalid",
+		)
+		return
+	}
+
+	err := h.passwordReset.Complete(r.Context(), request.Challenge, request.NewPassword)
+	if errors.Is(err, identity.ErrInvalidPasswordReset) {
+		writeProblem(
+			w,
+			http.StatusBadRequest,
+			"invalid-password-reset",
+			"invalid password reset",
+			"the password reset challenge is invalid or the password does not meet policy",
+		)
+		return
+	}
+	if err != nil {
+		slog.ErrorContext(r.Context(), "password reset completion errored", "error", err)
+		writeProblem(
+			w,
+			http.StatusInternalServerError,
+			"internal-error",
+			"internal error",
+			"the password reset could not be completed",
+		)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) handleChangePassword(w http.ResponseWriter, r *http.Request) {
+	if h.passwordChange == nil {
+		writeProblem(
+			w,
+			http.StatusServiceUnavailable,
+			"service-unavailable",
+			"service unavailable",
+			"password change is unavailable",
+		)
+		return
+	}
+	if !requireAllowedOrigin(w, r, h.origins) {
+		return
+	}
+	csrfToken, ok := requireCSRFHeader(w, r)
+	if !ok {
+		return
+	}
+
+	var request passwordChangeRequest
+	if err := decodeJSON(r, &request); err != nil {
+		writeProblem(
+			w,
+			http.StatusBadRequest,
+			"invalid-request",
+			"invalid request",
+			"the request body is invalid",
+		)
+		return
+	}
+
+	accessToken := cookieValue(r, AccessTokenCookieName)
+	if accessToken == "" {
+		writeUnauthorized(w)
+		return
+	}
+
+	err := h.passwordChange.Change(
+		r.Context(),
+		accessToken,
+		csrfToken,
+		request.CurrentPassword,
+		request.NewPassword,
+	)
+	if errors.Is(err, identity.ErrInvalidCSRFToken) {
+		writeProblem(
+			w,
+			http.StatusForbidden,
+			"csrf-failed",
+			"csrf failed",
+			"the csrf token is missing or invalid",
+		)
+		return
+	}
+	if errors.Is(err, identity.ErrInvalidAccessToken) {
+		writeUnauthorized(w)
+		return
+	}
+	if errors.Is(err, identity.ErrInvalidPasswordChange) {
+		writeProblem(
+			w,
+			http.StatusBadRequest,
+			"invalid-password-change",
+			"invalid password change",
+			"the current password is incorrect or the new password does not meet policy",
+		)
+		return
+	}
+	if err != nil {
+		slog.ErrorContext(r.Context(), "password change errored", "error", err)
+		writeProblem(
+			w,
+			http.StatusInternalServerError,
+			"internal-error",
+			"internal error",
+			"the password change could not be completed",
 		)
 		return
 	}
