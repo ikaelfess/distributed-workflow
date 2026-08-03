@@ -4,6 +4,8 @@ include:
 
 volumes:
   auth_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   distributed-workflow:

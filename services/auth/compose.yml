@@ -7,7 +7,6 @@ services:
     ports:
       - "9091:9091"
     volumes:
-      # writable so filesystem notifier can create notification.txt
       - ./config:/config
     networks:
       - distributed-workflow
