@@ -1,3 +1,3 @@
 # Keep resource permissions in owning contexts
 
-Identity and Access owns human and service identities, authentication proof, and platform-wide User Access Levels. Each domain context owns permission to act on its resources rather than centralizing resource authorization in Identity and Access, preserving context ownership and avoiding coupling Identity and Access to every resource model.
+Each domain context owns permission to act on its resources rather than centralizing resource authorization in a shared identity product. Human sign-in is infrastructure (Authelia + Caddy); it only proves a human is logged in. That keeps resource models free of a central permission catalog and avoids coupling every domain to auth internals.

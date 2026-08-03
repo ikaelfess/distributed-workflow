@@ -1,0 +1,20 @@
+# Local Caddy edge. Map auth.example.com / api.example.com to 127.0.0.1, or change hosts.
+# Listen on :8080 so you do not need root for :80.
+
+{
+	auto_https off
+}
+
+http://auth.example.com:8080 {
+	reverse_proxy auth:9091
+}
+
+http://api.example.com:8080 {
+	forward_auth auth:9091 {
+		uri /api/authz/forward-auth
+		copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+	}
+
+	# ponytail: placeholder until domain services are routed here
+	respond "authenticated" 200
+}
