@@ -1,11 +1,13 @@
 services:
   caddy:
-    image: caddy:2.10-alpine
+    image: caddy:2.11.4-alpine
     depends_on:
       - auth
     ports:
-      - "8080:8080"
+      - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     networks:
       - distributed-workflow

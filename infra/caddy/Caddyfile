@@ -1,15 +1,18 @@
-# Local Caddy edge. Map auth.example.com / api.example.com to 127.0.0.1, or change hosts.
-# Listen on :8080 so you do not need root for :80.
+# Local Caddy edge for workflow.tech (HTTPS).
+# Map auth.workflow.tech / api.workflow.tech to 127.0.0.1 in /etc/hosts.
+# tls internal = Caddy local CA (trust the root cert once; see services/auth/TESTING.md).
 
 {
-	auto_https off
+	local_certs
 }
 
-http://auth.example.com:8080 {
+auth.workflow.tech {
+	tls internal
 	reverse_proxy auth:9091
 }
 
-http://api.example.com:8080 {
+api.workflow.tech {
+	tls internal
 	forward_auth auth:9091 {
 		uri /api/authz/forward-auth
 		copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
