@@ -1,8 +1,6 @@
 services:
   caddy:
     image: caddy:2.11.4-alpine
-    depends_on:
-      - auth
     ports:
       - "443:443"
     volumes:
