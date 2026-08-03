@@ -6,32 +6,34 @@ Authelia expects HTTPS even for local development (secure session cookies). Cadd
 
 ## Prerequisites
 
-1. Map local hosts:
+- Map local hosts:
 
 ```text
 127.0.0.1 auth.workflow.tech api.workflow.tech
 ```
 
-2. Port **443** must be free on the host (Docker publishes `443:443`).
+- Port **443** must be free on the host (Docker publishes `443:443`).
 
 ## Start
 
 From the repo root:
 
 ```bash
-docker compose up -d auth auth_database caddy
+docker compose up -d
 docker compose ps
 docker compose logs -f auth caddy
 ```
 
-Wait until `auth` and `caddy` are healthy/running with no restart loops.
+Caddy is the edge: it does **not** `depends_on` Authelia. Authelia is reached on the compose network from Caddy. When domain services are added, they should `depends_on: caddy` (and not publish their own public ports unless needed).
+
+Wait until `auth` and `caddy` are running with no restart loops. Forward-auth may 502 until Authelia is ready — retry briefly.
 
 | URL | Role |
 |-----|------|
 | `https://auth.workflow.tech` | Authelia portal (via Caddy) |
 | `https://api.workflow.tech` | Protected placeholder (forward-auth) |
 
-Authelia’s process listens on `:9091` only on the compose network — use the HTTPS portal in a browser, not `:9091` directly.
+Do not call Authelia on a host port; it is not published. Use the HTTPS portal only.
 
 Default file user (change after first successful run):
 
@@ -71,7 +73,7 @@ Until the CA is trusted, use `curl -k` for CLI checks. After trusting, omit `-k`
 
 3. **Sign in in the browser**
 
-   Open `https://auth.workflow.tech`, sign in as `dev` / `authelia`, then visit `https://api.workflow.tech/`.  
+   Open `https://auth.workflow.tech`, sign in as `dev` / `authelia`, then visit `https://api.workflow.tech/`.
    Expect body `authenticated`.
 
 4. **Identity headers (optional)**
