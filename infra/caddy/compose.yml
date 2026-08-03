@@ -1,0 +1,11 @@
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    depends_on:
+      - auth
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    networks:
+      - distributed-workflow

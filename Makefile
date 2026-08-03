@@ -1,16 +1,4 @@
-.PHONY: test-iam test-iam-coverage update-shared-packages update-shared-packages-deps
-
-
-test-iam:
-	go test -v ./services/iam/...
-
-
-test-iam-coverage:
-	go test -v -coverprofile=services/iam/coverage.out ./services/iam/...
-
-
-iam-db:
-	@docker-compose up -d iam_database
+.PHONY: update-shared-packages update-shared-packages-deps
 
 
 SERVICES := $(patsubst %/,%,$(wildcard services/*/))
@@ -22,11 +10,13 @@ GOPROXY=direct go get $(REPO_LINK)/pkg/database@latest
 endef
 update-shared-packages:
 	@for svc in $(SERVICES); do \
-		echo "==> $$svc"; \
-		( \
-			cd $$svc && \
-			$(update_pkg) \
-		) || exit $$?; \
+		if [ -f "$$svc/go.mod" ]; then \
+			echo "==> $$svc"; \
+			( \
+				cd $$svc && \
+				$(update_pkg) \
+			) || exit $$?; \
+		fi; \
 	done
 
 

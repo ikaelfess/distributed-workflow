@@ -1,8 +1,9 @@
 include:
-  - services/iam/compose.yml
+  - services/auth/compose.yml
+  - infra/caddy/compose.yml
 
 volumes:
-  iam_data:
+  auth_data:
 
 networks:
   distributed-workflow:
