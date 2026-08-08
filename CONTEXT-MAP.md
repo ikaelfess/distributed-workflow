@@ -25,7 +25,7 @@ These modules support services but are not bounded contexts and do not receive d
 
 ## Infrastructure (not bounded contexts)
 
-- `services/auth/` — Authelia packaging (config + compose). Human browser sign-in only; users are created out-of-band. Not a domain glossary owner.
+- `services/authelia/` — Authelia packaging (config + compose). Human browser sign-in only; users are created out-of-band. Not a domain glossary owner.
 - `infra/caddy/` — Caddy API gateway; forward-auth to Authelia.
 
 ## Planned relationships

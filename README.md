@@ -22,7 +22,7 @@ distributed-workflow/
 │
 ├── services/
 │   ├── artifact/            # Artifact storage service
-│   ├── auth/                # Authelia (human sign-in packaging)
+│   ├── authelia/            # Authelia (human sign-in packaging)
 │   ├── metadata/            # Metadata storage service
 │   ├── notification/        # Notification service
 │   ├── scheduler/           # Workflow/job scheduler service
@@ -50,9 +50,9 @@ distributed-workflow/
 
 ## Auth (Authelia)
 
-Infrastructure packaging under `services/auth/`. Proves a human is logged in via the Authelia portal; Caddy forward-auth gates requests. Users are created out-of-band (file/CLI), not via public signup. Resource permissions stay in owning domain services.
+Infrastructure packaging under `services/authelia/`. Proves a human is logged in via the Authelia portal; Caddy forward-auth gates requests. Users are created out-of-band (file/CLI), not via public signup. Resource permissions stay in owning domain services.
 
-Local smoke steps: [services/auth/TESTING.md](./services/auth/TESTING.md).
+Local smoke steps: [services/authelia/TESTING.md](./services/authelia/TESTING.md).
 
 Implementation Tasks
 

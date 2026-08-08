@@ -1,15 +1,17 @@
 services:
-  auth:
+  authelia:
     image: authelia/authelia:4.39
     depends_on:
-      auth_database:
+      caddy:
+        condition: service_started
+      authelia_database:
         condition: service_healthy
     volumes:
       - ./config:/config
     networks:
       - distributed-workflow
 
-  auth_database:
+  authelia_database:
     image: postgres:18.4-alpine
     environment:
       POSTGRES_DB: authelia
@@ -18,7 +20,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - auth_data:/var/lib/postgresql
+      - authelia_data:/var/lib/postgresql
     networks:
       - distributed-workflow
     healthcheck:
