@@ -1,23 +1,26 @@
-# Local Caddy edge for workflow.tech (HTTPS).
-# Map auth.workflow.tech / api.workflow.tech to 127.0.0.1 in /etc/hosts.
-# tls internal = Caddy local CA (trust the root cert once; see services/auth/TESTING.md).
-
 {
 	local_certs
 }
 
+*.workflow.tech {
+	reverse_proxy authelia:9091 {
+		transport http {
+			dial_timeout 30s
+			keepalive_interval 30s
+		}
+	}
+}
+
 auth.workflow.tech {
-	tls internal
-	reverse_proxy auth:9091
+	reverse_proxy authelia:9091
 }
 
 api.workflow.tech {
-	tls internal
-	forward_auth auth:9091 {
+	forward_auth authelia:9091 {
 		uri /api/authz/forward-auth
 		copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
 	}
 
-	# ponytail: placeholder until domain services are routed here
+	# TODO: change to actual backends
 	respond "authenticated" 200
 }

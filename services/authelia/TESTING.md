@@ -21,12 +21,12 @@ From the repo root:
 ```bash
 docker compose up -d
 docker compose ps
-docker compose logs -f auth caddy
+docker compose logs -f authelia caddy
 ```
 
 Caddy is the edge: it does **not** `depends_on` Authelia. Authelia is reached on the compose network from Caddy. When domain services are added, they should `depends_on: caddy` (and not publish their own public ports unless needed).
 
-Wait until `auth` and `caddy` are running with no restart loops. Forward-auth may 502 until Authelia is ready — retry briefly.
+Wait until `authelia` and `caddy` are running with no restart loops. Forward-auth may 502 until Authelia is ready — retry briefly.
 
 | URL | Role |
 |-----|------|
@@ -37,8 +37,8 @@ Do not call Authelia on a host port; it is not published. Use the HTTPS portal o
 
 Default file user (change after first successful run):
 
-| Username | Password  |
-|----------|-----------|
+| Username | Password   |
+|----------|------------|
 | `dev`    | `authelia` |
 
 ## Trust Caddy’s local CA (once per machine)
@@ -86,4 +86,4 @@ Until the CA is trusted, use `curl -k` for CLI checks. After trusting, omit `-k`
 docker compose down
 ```
 
-Volumes: `auth_data` (Postgres), `caddy_data` (PKI/certs). Use `docker compose down -v` for a clean slate (you will need to re-trust the CA if the local CA is regenerated).
+Volumes: `authelia_data` (Postgres), `caddy_data` (PKI/certs). Use `docker compose down -v` for a clean slate (you will need to re-trust the CA if the local CA is regenerated).

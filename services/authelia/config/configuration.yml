@@ -1,8 +1,15 @@
-# Local-dev Authelia config for https://*.workflow.tech (via Caddy).
-# Secrets here are for local compose only — replace for any shared environment.
-
 server:
-  address: 'tcp://:9091'
+  endpoints:
+    authz:
+      forward-auth:
+        implementation: 'ForwardAuth'
+  buffers:
+    read: 4096
+    write: 4096
+  timeouts:
+    read: 10s
+    write: 10s
+    idle: 30s
 
 log:
   level: 'info'
@@ -34,7 +41,7 @@ session:
 storage:
   encryption_key: 'local_only_storage_encryption_key_change_me'
   postgres:
-    address: 'tcp://auth_database:5432'
+    address: 'tcp://authelia_database:5432'
     database: 'authelia'
     username: 'authelia'
     password: 'authelia'
