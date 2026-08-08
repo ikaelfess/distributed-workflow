@@ -1,0 +1,26 @@
+{
+	local_certs
+}
+
+*.workflow.tech {
+	reverse_proxy authelia:9091 {
+		transport http {
+			dial_timeout 30s
+			keepalive_interval 30s
+		}
+	}
+}
+
+auth.workflow.tech {
+	reverse_proxy authelia:9091
+}
+
+api.workflow.tech {
+	forward_auth authelia:9091 {
+		uri /api/authz/forward-auth
+		copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+	}
+
+	# TODO: change to actual backends
+	respond "authenticated" 200
+}

@@ -1,8 +1,11 @@
 include:
-  - services/iam/compose.yml
+  - infra/caddy/compose.yml
+  - services/authelia/compose.yml
 
 volumes:
-  iam_data:
+  authelia_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   distributed-workflow:

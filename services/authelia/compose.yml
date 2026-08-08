@@ -1,0 +1,30 @@
+services:
+  authelia:
+    image: authelia/authelia:4.39
+    depends_on:
+      caddy:
+        condition: service_started
+      authelia_database:
+        condition: service_healthy
+    volumes:
+      - ./config:/config
+    networks:
+      - distributed-workflow
+
+  authelia_database:
+    image: postgres:18.4-alpine
+    environment:
+      POSTGRES_DB: authelia
+      POSTGRES_USER: authelia
+      POSTGRES_PASSWORD: authelia
+    ports:
+      - "5433:5432"
+    volumes:
+      - authelia_data:/var/lib/postgresql
+    networks:
+      - distributed-workflow
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

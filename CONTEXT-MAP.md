@@ -2,11 +2,10 @@
 
 This map is the repository-level navigation for domain documentation. It records service areas without assuming that every service is already a bounded context.
 
-Identity and Access is a **confirmed bounded context**; all other service areas remain **provisional**. Promote a service area only after its distinct domain language and ownership boundary have been explicitly resolved. Code or independent deployment alone is not sufficient.
+No service area is currently a **confirmed bounded context**. Promote a service area only after its distinct domain language and ownership boundary have been explicitly resolved. Code or independent deployment alone is not sufficient.
 
 ## Service areas
 
-- **[Identity and Access](./services/iam/CONTEXT.md)** (`services/iam/`) — confirmed. Human and service identity, authentication proof, and platform-wide User Access Levels.
 - **Workflow Definition** (`services/workflow/`) — provisional. Workflow definitions and execution requests. Intended glossary: `services/workflow/CONTEXT.md`.
 - **Scheduling** (`services/scheduler/`) — provisional. Task orchestration and dependency resolution. Intended glossary: `services/scheduler/CONTEXT.md`.
 - **Task Execution** (`services/worker/`) — provisional. Distributed task execution and result reporting. Intended glossary: `services/worker/CONTEXT.md`.
@@ -25,15 +24,21 @@ These modules support services but are not bounded contexts and do not receive d
 - `pkg/logger/`
 - `pkg/shutdown/`
 
+## Infrastructure (not bounded contexts)
+
+- `services/authelia/` — Authelia packaging (config + compose). Human browser sign-in only; users are created out-of-band. Not a domain glossary owner.
+- `infra/caddy/` — Caddy API gateway; forward-auth to Authelia.
+
 ## Planned relationships
 
 The following relationships come from the README and are **planned, not authoritative contracts**:
 
-- **Other service areas → Identity and Access**: planned token validation through the `ValidateToken` gRPC operation.
+- **Caddy → Authelia**: planned forward-auth for gateway requests; Authelia answers whether a human is logged in.
 - **Workflow Definition → Scheduling**: planned Kafka event `workflow.started`.
 - **Scheduling → Task Execution**: planned Kafka event `task.scheduled`.
 - **Task Execution → Execution Metadata**: planned Kafka events `task.completed` and `task.failed`.
 - **Unresolved producer → Notifications**: planned Kafka event `workflow.completed`.
-- **Envoy → Identity and Access**: planned external authorization for gateway requests.
 
-No Kafka schemas or gRPC protocol definitions currently establish these relationships. Ownership and location of future cross-service contracts are unresolved; do not infer either from this map.
+No Kafka schemas or protocol definitions currently establish these relationships. Ownership and location of future cross-service contracts are unresolved; do not infer either from this map.
+
+Stable cross-service attribution of a human (e.g. workflow owner) is deferred until a domain first needs it; pin a claim from Authelia/Caddy then, not via an Identity and Access glossary.

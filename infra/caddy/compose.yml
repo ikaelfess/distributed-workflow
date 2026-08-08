@@ -1,0 +1,11 @@
+services:
+  caddy:
+    image: caddy:2.11.4-alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - distributed-workflow
