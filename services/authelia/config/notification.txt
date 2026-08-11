@@ -1,0 +1,35 @@
+Date: 2026-08-04 07:44:51.438316099 +0000 UTC m=+98.405509289
+Recipient: {Local Developer dev@workflow.tech}
+Subject: Reset your password
+A ONE-TIME LINK HAS BEEN GENERATED TO COMPLETE A REQUESTED ACTION
+
+Hi Local Developer,
+
+We would like to confirm a requested action related to the security of your account at workflow.tech
+
+Do not share this notification or the content of this notification with anyone.
+
+----------------------------------------
+
+If you made this request, click the validation link below.
+
+https://auth.workflow.tech/reset-password/step2?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2F1dGgud29ya2Zsb3cudGVjaCIsImV4cCI6MTc4NTgyOTc5MSwiaWF0IjoxNzg1ODI5NDkxLCJqdGkiOiJhNGFmOTE4MS02YmExLTRlOGYtYjA3ZS1iZWU1MWU1ODVjZGQiLCJhY3Rpb24iOiJSZXNldFBhc3N3b3JkIiwidXNlcm5hbWUiOiJkZXYifQ.925uNAjlBarNIE8L4O8VnPeLzQJ1vE3ttYxTTf9fMOg
+
+----------------------------------------
+
+If you did NOT initiate this request, your credentials may have been compromised and you should:
+
+ 1. Revoke the validation link using the provided links below
+ 2. Reset your password or other login credentials
+ 3. Contact an Administrator
+
+To revoke the code, click the link below:
+
+https://auth.workflow.tech/revoke/reset-password?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2F1dGgud29ya2Zsb3cudGVjaCIsImV4cCI6MTc4NTgyOTc5MSwiaWF0IjoxNzg1ODI5NDkxLCJqdGkiOiJhNGFmOTE4MS02YmExLTRlOGYtYjA3ZS1iZWU1MWU1ODVjZGQiLCJhY3Rpb24iOiJSZXNldFBhc3N3b3JkIiwidXNlcm5hbWUiOiJkZXYifQ.925uNAjlBarNIE8L4O8VnPeLzQJ1vE3ttYxTTf9fMOg
+
+----------------------------------------
+
+This email was intended for Local Developer. This event was generated due to an action from 192.168.107.1. If you do not believe that your actions could have triggered this event or if you are concerned about your account's safety, please follow the explicit directions in this notification.
+
+Powered by Authelia https://www.authelia.com
+
