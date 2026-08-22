@@ -74,14 +74,14 @@ func (m *Manager) Shutdown(ctx context.Context) error {
 			})
 		}
 
-		done := make(chan struct{})
+		phaseDone := make(chan struct{})
 		go func() {
-			defer close(done)
+			defer close(phaseDone)
 			wg.Wait()
 		}()
 
 		select {
-		case <-done:
+		case <-phaseDone:
 			if err := ctx.Err(); err != nil {
 				return joined(err)
 			}
