@@ -1,91 +1,77 @@
+// Package shutdown coordinates ordered resource Close during process shutdown.
+//
+// The process owns OS signals and the shutdown deadline. Pass a context
+// bounded by that deadline to [Manager.Shutdown].
 package shutdown
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"os"
-	"os/signal"
+	"maps"
 	"slices"
 	"sync"
-	"syscall"
-	"time"
-
-	"github.com/rs/zerolog"
 )
 
-// GracefulShutdown is implemented by components that release resources when the
-// process is stopping (HTTP servers, connection pools, workers, etc.).
-type GracefulShutdown interface {
-	Close(context.Context) error
-}
-
-// Manager runs registered services in ordered phases after SIGINT/SIGTERM.
-// Lower phase numbers complete first; within a phase, services close in parallel.
-// A typical layout is phase 0 for HTTP (or RPC) and phase 1 for databases.
+// Manager runs registered closers in ordered phases. Lower phase numbers
+// complete first; within a phase, closers run in parallel.
+//
+// Register is not safe for concurrent use. Register from one goroutine,
+// then call Shutdown.
 type Manager struct {
-	logger  zerolog.Logger
-	phases  map[int][]GracefulShutdown
-	timeout time.Duration
+	phases map[int][]func(context.Context) error
 }
 
-// NewManager builds a shutdown coordinator. timeout bounds the entire shutdown
-// sequence (all phases); a single context is passed to every Close call.
-func NewManager(timeout time.Duration, logger zerolog.Logger) *Manager {
-	return &Manager{
-		logger:  logger,
-		phases:  make(map[int][]GracefulShutdown),
-		timeout: timeout,
+// New returns a Manager with an initialized phase map.
+func New() *Manager {
+	return &Manager{phases: make(map[int][]func(context.Context) error)}
+}
+
+// Register adds a closer to a phase. Phases run in ascending order (0, 1, 2…).
+// Multiple Register calls with the same phase append to that phase's group.
+func (m *Manager) Register(phase int, closer func(context.Context) error) {
+	if m.phases == nil {
+		m.phases = make(map[int][]func(context.Context) error)
 	}
+	m.phases[phase] = append(m.phases[phase], closer)
 }
 
-// Register adds a service to a phase. Phases run in ascending order (0, 1, 2…).
-// Multiple Register calls with the same phase append to that phase’s group.
-func (m *Manager) Register(phase int, gs GracefulShutdown) {
-	m.phases[phase] = append(m.phases[phase], gs)
-}
-
-// Wait blocks until a shutdown signal, then runs phases in order until the
-// global timeout elapses or every Close returns.
-func (m *Manager) Wait() {
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	defer signal.Stop(quit)
-
-	<-quit
-	m.logger.Info().Msg("shutdown signal received")
-
-	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
-	defer cancel()
-
-	if m.runPhases(ctx) {
-		m.logger.Info().Msg("all shutdown phases complete")
+// Shutdown runs registered closers in phase order until every closer returns
+// or ctx is done. Close errors and panics do not skip remaining work; a done
+// context skips later phases. The result is errors.Join of closer failures,
+// recovered panics, and ctx.Err() if the deadline fired.
+func (m *Manager) Shutdown(ctx context.Context) error {
+	var (
+		mu   sync.Mutex
+		errs []error
+	)
+	add := func(err error) {
+		mu.Lock()
+		errs = append(errs, err)
+		mu.Unlock()
 	}
-}
-
-func (m *Manager) runPhases(ctx context.Context) bool {
-	keys := make([]int, 0, len(m.phases))
-	for k := range m.phases {
-		keys = append(keys, k)
+	joined := func(extra ...error) error {
+		mu.Lock()
+		defer mu.Unlock()
+		all := make([]error, 0, len(errs)+len(extra))
+		all = append(all, errs...)
+		all = append(all, extra...)
+		return errors.Join(all...)
 	}
-	slices.Sort(keys)
 
-	for _, phase := range keys {
-		services := m.phases[phase]
-		m.logger.Info().Int("phase", phase).Msg("shutdown phase started")
-
+	for _, phase := range slices.Sorted(maps.Keys(m.phases)) {
 		var wg sync.WaitGroup
-		wg.Add(len(services))
-		for _, service := range services {
-			go func(gs GracefulShutdown) {
-				defer wg.Done()
-
-				gsLogger := m.logger.With().Str("component", fmt.Sprintf("%T", gs)).Logger()
-				if err := gs.Close(ctx); err != nil {
-					gsLogger.Error().Err(err).Msg("service shutdown failed")
-					return
+		for _, closer := range m.phases[phase] {
+			wg.Go(func() {
+				defer func() {
+					if r := recover(); r != nil {
+						add(fmt.Errorf("phase %d: panic: %v", phase, r))
+					}
+				}()
+				if err := closer(ctx); err != nil {
+					add(fmt.Errorf("phase %d: %w", phase, err))
 				}
-				gsLogger.Info().Msg("stopped service")
-			}(service)
+			})
 		}
 
 		done := make(chan struct{})
@@ -96,12 +82,16 @@ func (m *Manager) runPhases(ctx context.Context) bool {
 
 		select {
 		case <-done:
-			m.logger.Info().Int("phase", phase).Msg("phase complete")
+			if err := ctx.Err(); err != nil {
+				return joined(err)
+			}
 		case <-ctx.Done():
-			m.logger.Warn().Err(ctx.Err()).Int("phase", phase).Msg("shutdown timeout during phase")
-			return false
+			// ponytail: in-flight closers are not waited; they must respect ctx
+			// or they outlive Shutdown until process exit. Upgrade: wait on wg
+			// after Done if a stuck closer must be observed in the Join.
+			return joined(ctx.Err())
 		}
 	}
 
-	return true
+	return joined()
 }
