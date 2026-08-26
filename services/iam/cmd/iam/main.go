@@ -11,7 +11,7 @@ import (
 	"github.com/ikaelfess/distributed-workflow/pkg/database"
 	"github.com/ikaelfess/distributed-workflow/pkg/httpserver"
 	"github.com/ikaelfess/distributed-workflow/pkg/logger"
-	"github.com/ikaelfess/distributed-workflow/pkg/shutdown"
+	"github.com/ikaelfess/shutdown"
 
 	"github.com/ikaelfess/distributed-workflow/services/iam/internal/bootstrap"
 	"github.com/ikaelfess/distributed-workflow/services/iam/internal/config"

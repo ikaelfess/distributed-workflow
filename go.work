@@ -4,7 +4,6 @@ use (
 	./pkg/database
 	./pkg/httpserver
 	./pkg/logger
-	./pkg/shutdown
 	./services/artifact
 	./services/iam
 	./services/metadata

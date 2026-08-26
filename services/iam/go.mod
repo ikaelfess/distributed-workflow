@@ -8,7 +8,7 @@ require (
 	github.com/ikaelfess/distributed-workflow/pkg/database v0.0.0-20260730193721-940dd60909be
 	github.com/ikaelfess/distributed-workflow/pkg/httpserver v0.0.0-20260730193721-940dd60909be
 	github.com/ikaelfess/distributed-workflow/pkg/logger v0.0.0-20260730193721-940dd60909be
-	github.com/ikaelfess/distributed-workflow/pkg/shutdown v0.0.0-20260730193721-940dd60909be
+	github.com/ikaelfess/shutdown v0.1.1
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.11.1
