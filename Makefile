@@ -17,7 +17,6 @@ SERVICES := $(patsubst %/,%,$(wildcard services/*/))
 REPO_LINK := github.com/ikaelfess/distributed-workflow
 define update_pkg
 GOPROXY=direct go get $(REPO_LINK)/pkg/httpserver@latest; \
-GOPROXY=direct go get $(REPO_LINK)/pkg/shutdown@latest; \
 GOPROXY=direct go get $(REPO_LINK)/pkg/logger@latest; \
 GOPROXY=direct go get $(REPO_LINK)/pkg/database@latest
 endef

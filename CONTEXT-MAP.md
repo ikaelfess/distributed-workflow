@@ -23,7 +23,6 @@ These modules support services but are not bounded contexts and do not receive d
 - `pkg/database/`
 - `pkg/httpserver/`
 - `pkg/logger/`
-- `pkg/shutdown/`
 
 ## Planned relationships
 
