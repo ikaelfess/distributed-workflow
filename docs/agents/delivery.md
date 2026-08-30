@@ -48,7 +48,7 @@ Use `gh pr create` with a heredoc body that includes the closing keyword. Infer 
 
 Always use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 
-```
+```text
 <type>[optional scope][optional !]: <description>
 ```
 

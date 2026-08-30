@@ -5,7 +5,6 @@ use (
 	./pkg/httpserver
 	./pkg/logger
 	./services/artifact
-	./services/iam
 	./services/metadata
 	./services/notification
 	./services/scheduler

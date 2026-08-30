@@ -7,7 +7,7 @@ The system is intentionally designed to practice real-world backend engineering 
 - Go microservices
 - gRPC and HTTP APIs
 - Kafka event-driven architecture
-- Envoy API Gateway
+- Caddy API gateway with Authelia forward-auth
 - MongoDB for flexible job metadata
 - PostgreSQL for relational services
 
@@ -16,13 +16,13 @@ The system is intentionally designed to practice real-world backend engineering 
 ```bash
 distributed-workflow/
 ├── infra/
-│   └── envoy/               # Envoy API Gateway configuration
+│   └── caddy/               # Caddy API gateway configuration
 │
 ├── pkg/                     # Shared packages
 │
 ├── services/
 │   ├── artifact/            # Artifact storage service
-│   ├── iam/                 # Identity and Access Management service
+│   ├── authelia/            # Authelia (human sign-in packaging)
 │   ├── metadata/            # Metadata storage service
 │   ├── notification/        # Notification service
 │   ├── scheduler/           # Workflow/job scheduler service
@@ -36,31 +36,31 @@ distributed-workflow/
 
 ## Services Overview
 
-| Service             | Primary Protocol | Database     | Purpose                                      |
-|---------------------|------------------|--------------|----------------------------------------------|
-| IAM Service         | HTTP + gRPC      | PostgreSQL   | Authentication and authorization             |
-| Workflow Service    | HTTP             | PostgreSQL   | Workflow definitions and execution requests  |
-| Scheduler Service   | gRPC             | PostgreSQL   | Task orchestration and dependency resolution |
-| Worker Service      | gRPC             | None/Local   | Distributed job execution                    |
-| Job Metadata Service| HTTP             | MongoDB      | Store logs and runtime metadata              |
-| Notification Service| HTTP             | PostgreSQL   | User notifications                           |
-| Artifact Service    | HTTP             | Object Store | Store workflow outputs                       |
+| Service              | Primary Protocol | Database     | Purpose                                      |
+|----------------------|------------------|--------------|----------------------------------------------|
+| Auth (Authelia)      | HTTP             | PostgreSQL   | Human browser sign-in (infra, not a domain)  |
+| Workflow Service     | HTTP             | PostgreSQL   | Workflow definitions and execution requests  |
+| Scheduler Service    | gRPC             | PostgreSQL   | Task orchestration and dependency resolution |
+| Worker Service       | gRPC             | None/Local   | Distributed job execution                    |
+| Job Metadata Service | HTTP             | MongoDB      | Store logs and runtime metadata              |
+| Notification Service | HTTP             | PostgreSQL   | User notifications                           |
+| Artifact Service     | HTTP             | Object Store | Store workflow outputs                       |
 
 ---
 
-## IAM Service
+## Auth (Authelia)
 
-Responsible for authentication, issuing tokens, and validating permissions across services.
+Infrastructure packaging under `services/authelia/`. Proves a human is logged in via the Authelia portal; Caddy forward-auth gates requests. Users are created out-of-band (file/CLI), not via public signup. Resource permissions stay in owning domain services.
+
+Local smoke steps: [services/authelia/TESTING.md](./services/authelia/TESTING.md).
 
 Implementation Tasks
 
-- Implement user registration and login endpoints
-- Store users and credentials in PostgreSQL
-- Generate and validate JWT tokens
-- Provide gRPC endpoint `ValidateToken` for internal services
-- Implement role-based access control
-- Add middleware for HTTP authentication
-- Expose gRPC client library for other services
+- Authelia configuration and file-based users for local development
+- Postgres storage for Authelia state (sessions, etc.)
+- Caddy `forward_auth` against Authelia
+- Wire protected routes for domain services through Caddy
+- Document how to add users out-of-band
 
 ---
 
@@ -74,7 +74,7 @@ Implementation Tasks
 - Design database schema for workflows and tasks
 - Implement DAG validation logic
 - Publish `workflow.started` events to Kafka
-- Integrate authentication via IAM service
+- Assume requests are already authenticated at the gateway
 - Implement workflow versioning
 - Add pagination and filtering for workflow queries
 
@@ -157,9 +157,8 @@ Implementation Tasks
 Infrastructure Tasks
 
 - Deploy Kafka and create required topics
-- Configure Envoy as API Gateway
+- Configure Caddy as API gateway with Authelia forward-auth
 - Add routing rules for each service
-- Implement Envoy external authorization using IAM
 - Create Dockerfiles for all services
 - Provide docker-compose setup for local development
 - Add centralized logging

@@ -1,0 +1,55 @@
+server:
+  endpoints:
+    authz:
+      forward-auth:
+        implementation: 'ForwardAuth'
+  buffers:
+    read: 4096
+    write: 4096
+  timeouts:
+    read: 10s
+    write: 10s
+    idle: 30s
+
+log:
+  level: 'info'
+
+totp:
+  disable: true
+
+authentication_backend:
+  file:
+    path: '/config/users.yml'
+    password:
+      algorithm: 'argon2'
+
+access_control:
+  default_policy: 'deny'
+  rules:
+    - domain: 'auth.workflow.tech'
+      policy: 'bypass'
+    - domain: '*.workflow.tech'
+      policy: 'one_factor'
+
+session:
+  secret: 'local_only_session_secret_change_me_32chars'
+  cookies:
+    - domain: 'workflow.tech'
+      authelia_url: 'https://auth.workflow.tech'
+      default_redirection_url: 'https://api.workflow.tech'
+
+storage:
+  encryption_key: 'local_only_storage_encryption_key_change_me'
+  postgres:
+    address: 'tcp://authelia_database:5432'
+    database: 'authelia'
+    username: 'authelia'
+    password: 'authelia'
+
+notifier:
+  filesystem:
+    filename: '/config/notification.txt'
+
+identity_validation:
+  reset_password:
+    jwt_secret: 'local_only_reset_password_jwt_secret_change'
