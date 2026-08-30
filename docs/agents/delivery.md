@@ -36,13 +36,26 @@ Before the first edit:
 
 ## Landing the work
 
-1. Implement and commit on the issue branch only.
+1. Implement and commit on the issue branch only. Every commit uses [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) — see [Commits](#commits).
 2. When the work is ready for review, **push and open a pull request** — that is part of finishing solving-issue work (no extra “please make a PR”). Still **do not merge** unless asked.
 3. PR body **must** include a closing keyword that links the issue, e.g. `Fixes #<n>` or `Closes #<n>`. That is the canonical link (GitHub auto-closes on merge).
 4. Mentions of `#n` in commit messages are optional once the PR body is correctly linked.
 5. Open a **ready-for-review** (non-draft) PR when the agent believes the work is complete and locally runnable checks have been run. Use **draft** only if the human asked for WIP delivery, or the agent hit a blocker and needs eyes before finishing.
 
 Use `gh pr create` with a heredoc body that includes the closing keyword. Infer the repo from `git remote` / cwd as with other `gh` operations.
+
+## Commits
+
+Always use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+
+```
+<type>[optional scope][optional !]: <description>
+```
+
+- Description is imperative, lowercase, no trailing period: `docs: require conventional commits`, not `Updated delivery.md.`
+- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`, `build`, `revert`
+- Breaking change: `!` after type/scope and/or a `BREAKING CHANGE:` footer
+- Issue numbers belong in the PR body (`Fixes #<n>`), not in the subject unless the human asks
 
 ## Human override
 
